@@ -6,13 +6,13 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Sequence
 
-from edge_semantic_compress_intelligence.knowledge import (
+from edge_semantic_compress_intelligence.services.cloud.knowledge import (
     JsonLinesKnowledgeParser,
     KnowledgeFormatError,
     KnowledgeIngestor,
     RawDocumentKnowledgeParser,
 )
-from edge_semantic_compress_intelligence.retrieval import VectorRecord
+from edge_semantic_compress_intelligence.services.cloud.retrieval import VectorRecord
 
 
 @dataclass

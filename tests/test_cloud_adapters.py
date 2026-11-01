@@ -6,14 +6,14 @@ from types import SimpleNamespace
 from typing import Any
 from unittest.mock import patch
 
-from edge_semantic_compress_intelligence.cloud_adapters import (
+from edge_semantic_compress_intelligence.services.cloud.adapters import (
     BgeM3HttpEmbedder,
     EmbeddingServiceError,
     MilvusVectorIndex,
     MilvusSchemaError,
     ensure_milvus_collection,
 )
-from edge_semantic_compress_intelligence.retrieval import VectorRecord
+from edge_semantic_compress_intelligence.services.cloud.retrieval import VectorRecord
 
 
 @dataclass

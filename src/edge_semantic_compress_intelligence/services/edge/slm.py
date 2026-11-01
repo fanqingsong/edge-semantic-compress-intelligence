@@ -8,8 +8,8 @@ from dataclasses import dataclass
 from typing import Any
 from uuid import uuid4
 
-from edge_semantic_compress_intelligence.filtering import LogRecord
-from edge_semantic_compress_intelligence.summarization import StructuredSummarizer
+from edge_semantic_compress_intelligence.services.edge.filtering import LogRecord
+from edge_semantic_compress_intelligence.services.edge.summarization import StructuredSummarizer
 
 
 SUMMARY_SCHEMA: dict[str, Any] = {

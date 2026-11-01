@@ -5,7 +5,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Protocol
 
-from edge_semantic_compress_intelligence.contracts import EdgeEvent
+from edge_semantic_compress_intelligence.shared.contract import EdgeEvent
 
 
 @dataclass(frozen=True, slots=True)

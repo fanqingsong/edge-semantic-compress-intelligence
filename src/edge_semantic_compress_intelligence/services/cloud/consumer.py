@@ -9,8 +9,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterator, Protocol
 
-from edge_semantic_compress_intelligence.contracts import EdgeEvent
-from edge_semantic_compress_intelligence.transport import MessageCodec
+from edge_semantic_compress_intelligence.shared.codec import MessageCodec
+from edge_semantic_compress_intelligence.shared.contract import EdgeEvent
 
 
 class ProcessedEventConflict(RuntimeError):

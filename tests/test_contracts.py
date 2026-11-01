@@ -1,6 +1,6 @@
 import unittest
 
-from edge_semantic_compress_intelligence.contracts import ContractError, EdgeEvent
+from edge_semantic_compress_intelligence.shared.contract import ContractError, EdgeEvent
 
 
 class EdgeEventTests(unittest.TestCase):

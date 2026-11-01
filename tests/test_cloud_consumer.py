@@ -6,19 +6,19 @@ from pathlib import Path
 from typing import Any
 from collections.abc import Sequence
 
-from edge_semantic_compress_intelligence.cloud_consumer import (
+from edge_semantic_compress_intelligence.services.cloud.consumer import (
     MqttDelivery,
     MqttEventConsumer,
     SQLiteProcessedEventStore,
 )
-from edge_semantic_compress_intelligence.contracts import EdgeEvent
-from edge_semantic_compress_intelligence.rag import (
+from edge_semantic_compress_intelligence.shared.contract import EdgeEvent
+from edge_semantic_compress_intelligence.services.cloud.rag import (
     AnalysisAnswer,
     DeterministicMockAnalysisModel,
     RagService,
     RetrievedCase,
 )
-from edge_semantic_compress_intelligence.transport import MessagePackCodec
+from edge_semantic_compress_intelligence.shared.codec import MessagePackCodec
 
 
 @dataclass

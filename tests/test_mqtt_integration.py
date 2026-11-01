@@ -9,28 +9,30 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
-from edge_semantic_compress_intelligence.cloud_consumer import (
+from edge_semantic_compress_intelligence.services.cloud.consumer import (
     MqttEventConsumer,
     SQLiteProcessedEventStore,
 )
-from edge_semantic_compress_intelligence.contracts import EdgeEvent
-from edge_semantic_compress_intelligence.edge_runtime import EdgeRuntime
-from edge_semantic_compress_intelligence.filtering import RuleFilter
-from edge_semantic_compress_intelligence.rag import (
+from edge_semantic_compress_intelligence.shared.contract import EdgeEvent
+from edge_semantic_compress_intelligence.services.edge.runtime import EdgeRuntime
+from edge_semantic_compress_intelligence.services.edge.filtering import RuleFilter
+from edge_semantic_compress_intelligence.services.cloud.rag import (
     DeterministicMockAnalysisModel,
     RagService,
     RetrievedCase,
 )
-from edge_semantic_compress_intelligence.summarization import (
+from edge_semantic_compress_intelligence.services.edge.summarization import (
     DeterministicMockSummarizer,
     SummaryPipeline,
 )
-from edge_semantic_compress_intelligence.transport import (
-    MessagePackCodec,
-    ReliableMqttTransport,
-    SQLiteOutbox,
+from edge_semantic_compress_intelligence.shared.codec import MessagePackCodec
+from edge_semantic_compress_intelligence.shared.mqtt import (
     configure_mtls,
     create_mqtt_v5_client,
+)
+from edge_semantic_compress_intelligence.services.edge.transport import (
+    ReliableMqttTransport,
+    SQLiteOutbox,
 )
 
 

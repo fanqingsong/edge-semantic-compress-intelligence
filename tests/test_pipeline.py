@@ -3,24 +3,24 @@ import unittest
 from dataclasses import dataclass, field
 from typing import Mapping, Sequence
 
-from edge_semantic_compress_intelligence.filtering import (
+from edge_semantic_compress_intelligence.services.cloud.rag import (
+    DeterministicMockAnalysisModel,
+    RagService,
+)
+from edge_semantic_compress_intelligence.services.cloud.retrieval import (
+    HybridRetriever,
+    VectorHit,
+)
+from edge_semantic_compress_intelligence.services.edge.filtering import (
     DropReason,
     FilterConfig,
     RuleFilter,
 )
-from edge_semantic_compress_intelligence.pipeline import EdgeCloudPipeline
-from edge_semantic_compress_intelligence.rag import (
-    DeterministicMockAnalysisModel,
-    RagService,
-)
-from edge_semantic_compress_intelligence.retrieval import (
-    HybridRetriever,
-    VectorHit,
-)
-from edge_semantic_compress_intelligence.summarization import (
+from edge_semantic_compress_intelligence.services.edge.summarization import (
     DeterministicMockSummarizer,
     SummaryPipeline,
 )
+from tests.edge_cloud_pipeline import EdgeCloudPipeline
 
 
 @dataclass

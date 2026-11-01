@@ -4,7 +4,7 @@ import argparse
 import json
 from dataclasses import asdict
 
-from edge_semantic_compress_intelligence.feedback import (
+from edge_semantic_compress_intelligence.services.cloud.feedback import (
     FeedbackStatus,
     SQLiteFeedbackStore,
 )

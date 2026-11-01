@@ -3,14 +3,14 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from edge_semantic_compress_intelligence.contracts import EdgeEvent
-from edge_semantic_compress_intelligence.feedback import (
+from edge_semantic_compress_intelligence.shared.contract import EdgeEvent
+from edge_semantic_compress_intelligence.services.cloud.feedback import (
     FeedbackStatus,
     FeedbackTransitionError,
     PromptFeedbackService,
     SQLiteFeedbackStore,
 )
-from edge_semantic_compress_intelligence.rag import (
+from edge_semantic_compress_intelligence.services.cloud.rag import (
     AnalysisAnswer,
     RagResult,
     RetrievedCase,

@@ -6,8 +6,8 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Protocol
 
-from edge_semantic_compress_intelligence.contracts import EdgeEvent
-from edge_semantic_compress_intelligence.rag import RetrievedCase
+from edge_semantic_compress_intelligence.shared.contract import EdgeEvent
+from edge_semantic_compress_intelligence.services.cloud.rag import RetrievedCase
 
 
 @dataclass(frozen=True, slots=True)

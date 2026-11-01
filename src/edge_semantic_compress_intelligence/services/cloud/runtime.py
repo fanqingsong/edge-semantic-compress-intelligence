@@ -10,9 +10,9 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Iterator, Sequence
 
-from edge_semantic_compress_intelligence.contracts import EdgeEvent
-from edge_semantic_compress_intelligence.feedback import PromptFeedbackService
-from edge_semantic_compress_intelligence.rag import RagResult, RagService
+from edge_semantic_compress_intelligence.shared.contract import EdgeEvent
+from edge_semantic_compress_intelligence.services.cloud.feedback import PromptFeedbackService
+from edge_semantic_compress_intelligence.services.cloud.rag import RagResult, RagService
 
 
 @dataclass(frozen=True, slots=True)

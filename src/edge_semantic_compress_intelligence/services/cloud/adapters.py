@@ -9,7 +9,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
 
-from edge_semantic_compress_intelligence.retrieval import VectorHit, VectorRecord
+from edge_semantic_compress_intelligence.services.cloud.retrieval import VectorHit, VectorRecord
 
 
 class EmbeddingServiceError(RuntimeError):

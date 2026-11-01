@@ -12,8 +12,8 @@ from pathlib import Path
 from typing import Iterator
 from uuid import uuid4
 
-from edge_semantic_compress_intelligence.contracts import EdgeEvent
-from edge_semantic_compress_intelligence.rag import RagResult
+from edge_semantic_compress_intelligence.shared.contract import EdgeEvent
+from edge_semantic_compress_intelligence.services.cloud.rag import RagResult
 
 
 class FeedbackStatus(StrEnum):

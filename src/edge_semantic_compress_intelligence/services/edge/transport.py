@@ -1,45 +1,14 @@
 from __future__ import annotations
 
-import json
 import os
 import sqlite3
-import ssl
 from contextlib import contextmanager
-from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Iterator, Protocol
+from typing import Any, Iterator
 
-from edge_semantic_compress_intelligence.contracts import ContractError, EdgeEvent
-
-
-class MessageCodec(Protocol):
-    def encode(self, event: EdgeEvent) -> bytes:
-        """Encode an event for the wire protocol."""
-
-
-class MessagePackCodec:
-    def encode(self, event: EdgeEvent) -> bytes:
-        try:
-            import msgpack
-        except ImportError as error:
-            raise RuntimeError(
-                "MessagePack support requires the 'transport' extra"
-            ) from error
-        return msgpack.packb(event.to_dict(), use_bin_type=True)
-
-    def decode(self, payload: bytes) -> EdgeEvent:
-        try:
-            import msgpack
-        except ImportError as error:
-            raise RuntimeError(
-                "MessagePack support requires the 'transport' extra"
-            ) from error
-        try:
-            value = msgpack.unpackb(payload, raw=False, strict_map_key=False)
-        except (ValueError, TypeError) as error:
-            raise ContractError("payload is not valid MessagePack") from error
-        return EdgeEvent.from_mapping(value)
+from edge_semantic_compress_intelligence.shared.codec import MessageCodec
+from edge_semantic_compress_intelligence.shared.contract import EdgeEvent
 
 
 class OutboxFullError(RuntimeError):
@@ -215,35 +184,3 @@ class ReliableMqttTransport:
             published += 1
         pending_count, _ = self.outbox.usage()
         return FlushReport(published=published, pending=pending_count)
-
-
-def configure_mtls(
-    client: Any,
-    *,
-    ca_file: str,
-    certificate_file: str,
-    key_file: str,
-) -> None:
-    client.tls_set(
-        ca_certs=ca_file,
-        certfile=certificate_file,
-        keyfile=key_file,
-        cert_reqs=ssl.CERT_REQUIRED,
-    )
-    client.tls_insecure_set(False)
-
-
-def create_mqtt_v5_client(client_id: str) -> Any:
-    if not client_id.strip():
-        raise ValueError("client_id must not be empty")
-    try:
-        import paho.mqtt.client as mqtt
-    except ImportError as error:
-        raise RuntimeError(
-            "MQTT support requires the 'transport' extra"
-        ) from error
-    return mqtt.Client(
-        callback_api_version=mqtt.CallbackAPIVersion.VERSION2,
-        client_id=client_id,
-        protocol=mqtt.MQTTv5,
-    )

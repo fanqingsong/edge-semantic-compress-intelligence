@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
 
-from edge_semantic_compress_intelligence.retrieval import TextEmbedder, VectorIndex, VectorRecord
+from edge_semantic_compress_intelligence.services.cloud.retrieval import TextEmbedder, VectorIndex, VectorRecord
 
 
 class KnowledgeFormatError(ValueError):

@@ -4,16 +4,18 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from edge_semantic_compress_intelligence.contracts import EdgeEvent
-from edge_semantic_compress_intelligence.transport import (
+from edge_semantic_compress_intelligence.shared.contract import EdgeEvent
+from edge_semantic_compress_intelligence.shared.codec import MessagePackCodec
+from edge_semantic_compress_intelligence.shared.mqtt import (
+    configure_mtls,
+    create_mqtt_v5_client,
+)
+from edge_semantic_compress_intelligence.services.edge.transport import (
     EventConflictError,
     FlushReport,
-    MessagePackCodec,
     OutboxFullError,
     ReliableMqttTransport,
     SQLiteOutbox,
-    configure_mtls,
-    create_mqtt_v5_client,
 )
 
 

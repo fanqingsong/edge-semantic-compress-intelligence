@@ -7,15 +7,15 @@ import urllib.error
 import urllib.request
 from dataclasses import dataclass, field
 
-from edge_semantic_compress_intelligence.contracts import EdgeEvent
-from edge_semantic_compress_intelligence.edge_http import EdgeHttpConfig, create_edge_server
-from edge_semantic_compress_intelligence.edge_runtime import EdgeRuntime
-from edge_semantic_compress_intelligence.filtering import RuleFilter
-from edge_semantic_compress_intelligence.summarization import (
+from edge_semantic_compress_intelligence.shared.contract import EdgeEvent
+from edge_semantic_compress_intelligence.services.edge.http import EdgeHttpConfig, create_edge_server
+from edge_semantic_compress_intelligence.services.edge.runtime import EdgeRuntime
+from edge_semantic_compress_intelligence.services.edge.filtering import RuleFilter
+from edge_semantic_compress_intelligence.services.edge.summarization import (
     DeterministicMockSummarizer,
     SummaryPipeline,
 )
-from edge_semantic_compress_intelligence.transport import FlushReport
+from edge_semantic_compress_intelligence.services.edge.transport import FlushReport
 
 
 @dataclass

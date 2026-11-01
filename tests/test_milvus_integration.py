@@ -4,11 +4,11 @@ import os
 import unittest
 from uuid import uuid4
 
-from edge_semantic_compress_intelligence.cloud_adapters import (
+from edge_semantic_compress_intelligence.services.cloud.adapters import (
     MilvusVectorIndex,
     ensure_milvus_collection,
 )
-from edge_semantic_compress_intelligence.retrieval import VectorRecord
+from edge_semantic_compress_intelligence.services.cloud.retrieval import VectorRecord
 
 
 @unittest.skipUnless(

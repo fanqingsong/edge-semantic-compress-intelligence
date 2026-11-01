@@ -3,8 +3,8 @@ import unittest
 from dataclasses import dataclass
 from typing import Sequence
 
-from edge_semantic_compress_intelligence.contracts import EdgeEvent
-from edge_semantic_compress_intelligence.rag import (
+from edge_semantic_compress_intelligence.shared.contract import EdgeEvent
+from edge_semantic_compress_intelligence.services.cloud.rag import (
     AnalysisAnswer,
     DeterministicMockAnalysisModel,
     RagService,

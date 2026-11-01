@@ -3,11 +3,11 @@ import unittest
 from typing import Any
 from unittest.mock import patch
 
-from edge_semantic_compress_intelligence.cloud_models import (
+from edge_semantic_compress_intelligence.services.cloud.models import (
     AnalysisModelError,
     OpenAICompatibleAnalysisModel,
 )
-from edge_semantic_compress_intelligence.rag import AnalysisAnswer
+from edge_semantic_compress_intelligence.services.cloud.rag import AnalysisAnswer
 
 
 class FakeResponse:

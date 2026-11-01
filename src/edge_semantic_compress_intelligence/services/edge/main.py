@@ -4,18 +4,20 @@ import argparse
 import logging
 import os
 
-from edge_semantic_compress_intelligence.edge_http import EdgeHttpConfig, create_edge_server
-from edge_semantic_compress_intelligence.edge_runtime import EdgeRuntime
-from edge_semantic_compress_intelligence.filtering import RuleFilter
-from edge_semantic_compress_intelligence.slm import LlamaCppSummarizer
-from edge_semantic_compress_intelligence.summarization import (
+from edge_semantic_compress_intelligence.services.edge.filtering import RuleFilter
+from edge_semantic_compress_intelligence.services.edge.http import EdgeHttpConfig, create_edge_server
+from edge_semantic_compress_intelligence.services.edge.runtime import EdgeRuntime
+from edge_semantic_compress_intelligence.services.edge.slm import LlamaCppSummarizer
+from edge_semantic_compress_intelligence.services.edge.summarization import (
     DeterministicMockSummarizer,
     SummaryPipeline,
 )
-from edge_semantic_compress_intelligence.transport import (
-    MessagePackCodec,
+from edge_semantic_compress_intelligence.services.edge.transport import (
     ReliableMqttTransport,
     SQLiteOutbox,
+)
+from edge_semantic_compress_intelligence.shared.codec import MessagePackCodec
+from edge_semantic_compress_intelligence.shared.mqtt import (
     configure_mtls,
     create_mqtt_v5_client,
 )
