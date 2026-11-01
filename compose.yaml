@@ -1,0 +1,203 @@
+services:
+  edge-agent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      EDGE_HTTP_HOST: 0.0.0.0
+      EDGE_HTTP_PORT: "8090"
+      EDGE_MQTT_HOST: mosquitto
+      EDGE_MQTT_PORT: "8883"
+      EDGE_MQTT_TOPIC: edge/events
+      EDGE_OUTBOX_PATH: /var/lib/edge-agent/outbox.sqlite3
+      EDGE_SUMMARIZER: ${EDGE_SUMMARIZER:-mock}
+      EDGE_MQTT_CA_FILE: /run/mqtt/ca.crt
+      EDGE_MQTT_CERT_FILE: /run/mqtt/edge-agent.crt
+      EDGE_MQTT_KEY_FILE: /run/mqtt/edge-agent.key
+    ports:
+      - "8090:8090"
+    volumes:
+      - edge_outbox:/var/lib/edge-agent
+      - ./deploy/mosquitto/certs/ca.crt:/run/mqtt/ca.crt:ro
+      - ./deploy/mosquitto/certs/edge-agent.crt:/run/mqtt/edge-agent.crt:ro
+      - ./deploy/mosquitto/certs/edge-agent.key:/run/mqtt/edge-agent.key:ro
+    depends_on:
+      mosquitto:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8090/healthz', timeout=2)"
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
+  fluent-bit:
+    image: fluent/fluent-bit:3.2.10
+    volumes:
+      - ./deploy/fluent-bit/fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf:ro
+      - ./deploy/fluent-bit/normalize_syslog.lua:/fluent-bit/etc/normalize_syslog.lua:ro
+      - ./examples/logs:/var/log/edge:ro
+      - fluent_bit_state:/var/lib/fluent-bit
+    ports:
+      - "5514:5514/udp"
+    depends_on:
+      edge-agent:
+        condition: service_healthy
+
+  cloud-agent:
+    build:
+      context: .
+      dockerfile: Dockerfile.cloud
+    environment:
+      CLOUD_MQTT_HOST: mosquitto
+      CLOUD_MQTT_PORT: "8883"
+      CLOUD_MQTT_TOPIC: edge/events
+      CLOUD_MILVUS_URI: http://milvus:19530
+      CLOUD_MILVUS_COLLECTION: ops_cases
+      CLOUD_VECTOR_DIMENSION: "1024"
+      CLOUD_EMBEDDING_MODE: mock
+      CLOUD_ANALYSIS_MODE: mock
+      CLOUD_PROCESSED_DB: /var/lib/cloud/processed.sqlite3
+      CLOUD_ANALYSIS_DB: /var/lib/cloud/analyses.sqlite3
+      CLOUD_FEEDBACK_DB: /var/lib/cloud/feedback.sqlite3
+      CLOUD_MQTT_CA_FILE: /run/mqtt/ca.crt
+      CLOUD_MQTT_CERT_FILE: /run/mqtt/cloud-agent.crt
+      CLOUD_MQTT_KEY_FILE: /run/mqtt/cloud-agent.key
+    volumes:
+      - cloud_data:/var/lib/cloud
+      - ./deploy/mosquitto/certs/ca.crt:/run/mqtt/ca.crt:ro
+      - ./deploy/mosquitto/certs/cloud-agent.crt:/run/mqtt/cloud-agent.crt:ro
+      - ./deploy/mosquitto/certs/cloud-agent.key:/run/mqtt/cloud-agent.key:ro
+    depends_on:
+      mosquitto:
+        condition: service_healthy
+      milvus:
+        condition: service_healthy
+    restart: unless-stopped
+
+  knowledge-ingest:
+    profiles: ["tools"]
+    build:
+      context: .
+      dockerfile: Dockerfile.cloud
+    entrypoint: ["knowledge-ingest"]
+    command:
+      - --path
+      - /var/lib/knowledge
+      - --milvus-uri
+      - http://milvus:19530
+      - --collection
+      - ops_cases
+      - --embedding-mode
+      - ${CLOUD_EMBEDDING_MODE:-mock}
+      - --embedding-url
+      - ${CLOUD_EMBEDDING_URL:-http://host.docker.internal:8081/embed}
+    volumes:
+      - ./examples/knowledge/sources:/var/lib/knowledge:ro
+    depends_on:
+      milvus:
+        condition: service_healthy
+
+  feedback-admin:
+    profiles: ["tools"]
+    build:
+      context: .
+      dockerfile: Dockerfile.cloud
+    entrypoint: ["prompt-feedback"]
+    command: ["--db", "/var/lib/cloud/feedback.sqlite3", "list"]
+    volumes:
+      - cloud_data:/var/lib/cloud
+
+  mosquitto:
+    image: eclipse-mosquitto:2.0.20
+    entrypoint: ["/bin/sh", "/mosquitto/config/mosquitto-entrypoint.sh"]
+    ports:
+      - "8883:8883"
+    volumes:
+      - ./deploy/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - ./deploy/mosquitto/aclfile:/mosquitto/config/aclfile:ro
+      - ./scripts/mosquitto-entrypoint.sh:/mosquitto/config/mosquitto-entrypoint.sh:ro
+      - ./deploy/mosquitto/certs:/run/mqtt-certs:ro
+      - mosquitto_runtime:/mosquitto/runtime
+      - mosquitto_data:/mosquitto/data
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - mosquitto_sub -h 127.0.0.1 -p 8883 --cafile /mosquitto/runtime/certs/ca.crt --cert /mosquitto/runtime/certs/healthcheck.crt --key /mosquitto/runtime/certs/healthcheck.key -t '$$SYS/broker/uptime' -C 1 -W 15 >/dev/null
+      interval: 20s
+      timeout: 18s
+      retries: 3
+      start_period: 20s
+
+  etcd:
+    image: quay.io/coreos/etcd:v3.5.18
+    command:
+      - etcd
+      - --advertise-client-urls=http://etcd:2379
+      - --listen-client-urls=http://0.0.0.0:2379
+      - --data-dir=/etcd
+    environment:
+      ETCD_AUTO_COMPACTION_MODE: revision
+      ETCD_AUTO_COMPACTION_RETENTION: "1000"
+      ETCD_QUOTA_BACKEND_BYTES: "4294967296"
+      ETCD_SNAPSHOT_COUNT: "50000"
+    volumes:
+      - etcd_data:/etcd
+    healthcheck:
+      test: ["CMD", "etcdctl", "--endpoints=http://localhost:2379", "endpoint", "health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    image: bitnamilegacy/minio:2024.12.18
+    command: minio server /bitnami/minio/data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    volumes:
+      - minio_data:/bitnami/minio/data
+    ports:
+      - "9001:9001"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  milvus:
+    image: milvusdb/milvus:v2.5.4
+    command: ["milvus", "run", "standalone"]
+    environment:
+      ETCD_ENDPOINTS: etcd:2379
+      MINIO_ADDRESS: minio:9000
+    volumes:
+      - milvus_data:/var/lib/milvus
+    ports:
+      - "19530:19530"
+      - "9091:9091"
+    depends_on:
+      etcd:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9091/healthz"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+
+volumes:
+  cloud_data:
+  edge_outbox:
+  fluent_bit_state:
+  etcd_data:
+  minio_data:
+  milvus_data:
+  mosquitto_data:
+  mosquitto_runtime:

@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/schemas/edge-summary-v1.schema.json",
+  "title": "Edge Summary v1",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "summary": {
+      "type": "string",
+      "minLength": 1
+    },
+    "target_ip": {
+      "type": ["string", "null"],
+      "format": "ip-address"
+    },
+    "target_port": {
+      "type": ["integer", "null"],
+      "minimum": 1,
+      "maximum": 65535
+    },
+    "error_code": {
+      "type": ["string", "null"],
+      "minLength": 1
+    }
+  },
+  "required": ["summary"]
+}
