@@ -3,6 +3,7 @@
 - 状态：已采纳（MVP 严格过滤）
 - 日期：2026-11-01
 - 关联 PRD：PRD-05
+- 代码：[检索](../services/cloud/retrieval.md)
 
 ## 背景
 

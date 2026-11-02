@@ -7,7 +7,16 @@ from dataclasses import dataclass
 from typing import Protocol
 
 from edge_semantic_compress_intelligence.shared.contract import EdgeEvent
-from edge_semantic_compress_intelligence.services.cloud.rag import RetrievedCase
+
+
+@dataclass(frozen=True, slots=True)
+class RetrievedCase:
+    case_id: str
+    summary: str
+    resolution: str
+    source: str
+    target_ip: str | None = None
+    score: float = 0.0
 
 
 @dataclass(frozen=True, slots=True)

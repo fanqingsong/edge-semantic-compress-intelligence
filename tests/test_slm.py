@@ -1,10 +1,12 @@
+from __future__ import annotations
+
 import json
 import unittest
 from typing import Any
 from unittest.mock import patch
 
 from edge_semantic_compress_intelligence.services.edge.filtering import LogRecord
-from edge_semantic_compress_intelligence.services.edge.slm import (
+from edge_semantic_compress_intelligence.services.edge.summarization.slm import (
     LlamaCppServerConfig,
     LlamaCppSummarizer,
     SummarizationError,

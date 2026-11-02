@@ -3,6 +3,7 @@
 - 状态：已采纳（默认方案）
 - 日期：2026-11-01
 - 关联 PRD：PRD-01
+- 代码：[过滤](../services/edge/filtering.md)，采集配置在 `deploy/fluent-bit`
 
 ## 背景
 

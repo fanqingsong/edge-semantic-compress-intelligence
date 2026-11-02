@@ -3,6 +3,7 @@
 - 状态：已采纳（MVP：MQTT v5 + MessagePack + SQLite outbox）
 - 日期：2026-11-01
 - 关联 PRD：PRD-03
+- 代码：[传输](../services/edge/transport.md)，云端消费在 [cloud agent](../services/cloud/agent.md)
 
 ## 背景
 

@@ -3,6 +3,7 @@
 - 状态：已采纳
 - 日期：2026-11-01
 - 关联 PRD：PRD-01、PRD-02、PRD-03、PRD-04、PRD-05、PRD-06、PRD-07
+- 代码：[服务目录](../services/README.md)
 
 ## 背景
 

@@ -2,6 +2,8 @@
 
 **原需求：** E-01、E-02
 
+**服务：** [过滤](../services/edge/filtering.md)。采集配置在 `deploy/fluent-bit`，规则过滤在 `services/edge/filtering`。
+
 ## 目标
 
 在资源受限的边缘设备上可靠采集指定来源的日志，并用确定性规则剔除低价值日志，为后续结构化提炼保留高价值输入。

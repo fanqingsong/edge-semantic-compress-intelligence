@@ -1,1 +1,1 @@
-"""Edge log agent: rule filtering, local summarization, and reliable delivery."""
+"""Edge services: filtering, summarization, transport, and the composing agent."""

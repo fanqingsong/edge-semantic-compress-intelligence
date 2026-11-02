@@ -3,6 +3,7 @@
 - 状态：已采纳（MVP 人工审核，不自动修改线上 Prompt）
 - 日期：2026-11-01
 - 关联 PRD：PRD-07
+- 代码：[反馈](../services/cloud/feedback.md)
 
 ## 背景
 

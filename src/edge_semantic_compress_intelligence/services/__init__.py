@@ -1,1 +1,1 @@
-"""Deployable edge and cloud services."""
+"""Deployable services, one package per service."""

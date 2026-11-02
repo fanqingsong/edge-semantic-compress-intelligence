@@ -8,7 +8,7 @@ from typing import Callable, Protocol
 from uuid import uuid4
 
 from edge_semantic_compress_intelligence.shared.contract import ContractError, EdgeEvent
-from edge_semantic_compress_intelligence.services.edge.filtering import LogRecord
+from edge_semantic_compress_intelligence.services.edge.filtering.service import LogRecord
 
 
 class StructuredSummarizer(Protocol):

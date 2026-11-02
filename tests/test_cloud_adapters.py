@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 import sys
 import unittest
@@ -6,7 +8,7 @@ from types import SimpleNamespace
 from typing import Any
 from unittest.mock import patch
 
-from edge_semantic_compress_intelligence.services.cloud.adapters import (
+from edge_semantic_compress_intelligence.services.cloud.retrieval.adapters import (
     BgeM3HttpEmbedder,
     EmbeddingServiceError,
     MilvusVectorIndex,

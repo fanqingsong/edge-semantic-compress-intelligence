@@ -5,8 +5,8 @@ from dataclasses import dataclass
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Type
 
-from edge_semantic_compress_intelligence.services.edge.runtime import EdgeRuntime
-from edge_semantic_compress_intelligence.services.edge.transport import OutboxFullError
+from edge_semantic_compress_intelligence.services.edge.agent.runtime import EdgeRuntime
+from edge_semantic_compress_intelligence.services.edge.transport.outbox import OutboxFullError
 
 
 @dataclass(frozen=True, slots=True)

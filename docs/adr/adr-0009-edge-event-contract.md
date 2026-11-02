@@ -3,6 +3,7 @@
 - 状态：已采纳（MVP）
 - 日期：2026-11-01
 - 关联 PRD：PRD-02、PRD-03、PRD-05
+- 代码：[shared](../services/shared.md)
 
 ## 背景
 

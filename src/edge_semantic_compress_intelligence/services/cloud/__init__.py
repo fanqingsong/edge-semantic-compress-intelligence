@@ -1,1 +1,1 @@
-"""Cloud service: RAG consumption, knowledge ingest, and prompt feedback."""
+"""Cloud services: knowledge, retrieval, RAG, feedback, and the composing agent."""

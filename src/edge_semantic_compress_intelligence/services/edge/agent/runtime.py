@@ -6,9 +6,14 @@ from dataclasses import dataclass
 from typing import Protocol
 
 from edge_semantic_compress_intelligence.shared.contract import EdgeEvent
-from edge_semantic_compress_intelligence.services.edge.filtering import DropReason, RuleFilter
-from edge_semantic_compress_intelligence.services.edge.summarization import SummaryPipeline
-from edge_semantic_compress_intelligence.services.edge.transport import FlushReport
+from edge_semantic_compress_intelligence.services.edge.filtering.service import (
+    DropReason,
+    RuleFilter,
+)
+from edge_semantic_compress_intelligence.services.edge.summarization.pipeline import (
+    SummaryPipeline,
+)
+from edge_semantic_compress_intelligence.services.edge.transport.outbox import FlushReport
 
 
 class EventTransport(Protocol):

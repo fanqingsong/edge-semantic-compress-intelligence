@@ -5,17 +5,8 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Protocol
 
+from edge_semantic_compress_intelligence.services.cloud.retrieval.hybrid import RetrievedCase
 from edge_semantic_compress_intelligence.shared.contract import EdgeEvent
-
-
-@dataclass(frozen=True, slots=True)
-class RetrievedCase:
-    case_id: str
-    summary: str
-    resolution: str
-    source: str
-    target_ip: str | None = None
-    score: float = 0.0
 
 
 @dataclass(frozen=True, slots=True)

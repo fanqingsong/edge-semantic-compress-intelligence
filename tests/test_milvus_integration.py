@@ -4,7 +4,7 @@ import os
 import unittest
 from uuid import uuid4
 
-from edge_semantic_compress_intelligence.services.cloud.adapters import (
+from edge_semantic_compress_intelligence.services.cloud.retrieval.adapters import (
     MilvusVectorIndex,
     ensure_milvus_collection,
 )

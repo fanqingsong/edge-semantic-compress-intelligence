@@ -6,15 +6,17 @@ import logging
 import os
 from pathlib import Path
 
-from edge_semantic_compress_intelligence.services.cloud.adapters import (
+from edge_semantic_compress_intelligence.services.cloud.knowledge.ingest import (
+    KnowledgeIngestor,
+    RawDocumentKnowledgeParser,
+)
+from edge_semantic_compress_intelligence.services.cloud.retrieval.adapters import (
     BgeM3HttpEmbedder,
     MilvusVectorIndex,
     ensure_milvus_collection,
 )
-from edge_semantic_compress_intelligence.services.cloud.runtime import DeterministicHashEmbedder
-from edge_semantic_compress_intelligence.services.cloud.knowledge import (
-    KnowledgeIngestor,
-    RawDocumentKnowledgeParser,
+from edge_semantic_compress_intelligence.services.cloud.retrieval.hashing import (
+    DeterministicHashEmbedder,
 )
 
 

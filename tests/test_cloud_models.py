@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 import json
 import unittest
 from typing import Any
 from unittest.mock import patch
 
-from edge_semantic_compress_intelligence.services.cloud.models import (
+from edge_semantic_compress_intelligence.services.cloud.rag.models import (
     AnalysisModelError,
     OpenAICompatibleAnalysisModel,
 )

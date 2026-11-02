@@ -9,12 +9,12 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
-from edge_semantic_compress_intelligence.services.cloud.consumer import (
+from edge_semantic_compress_intelligence.services.cloud.agent.consumer import (
     MqttEventConsumer,
     SQLiteProcessedEventStore,
 )
 from edge_semantic_compress_intelligence.shared.contract import EdgeEvent
-from edge_semantic_compress_intelligence.services.edge.runtime import EdgeRuntime
+from edge_semantic_compress_intelligence.services.edge.agent.runtime import EdgeRuntime
 from edge_semantic_compress_intelligence.services.edge.filtering import RuleFilter
 from edge_semantic_compress_intelligence.services.cloud.rag import (
     DeterministicMockAnalysisModel,

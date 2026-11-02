@@ -10,10 +10,10 @@ requires-python = ">=3.11"
 dependencies = []
 
 [project.scripts]
-edge-log-agent = "edge_semantic_compress_intelligence.services.edge.main:main"
-cloud-rag-agent = "edge_semantic_compress_intelligence.services.cloud.main:main"
-knowledge-ingest = "edge_semantic_compress_intelligence.services.cloud.knowledge_main:main"
-prompt-feedback = "edge_semantic_compress_intelligence.services.cloud.feedback_main:main"
+edge-log-agent = "edge_semantic_compress_intelligence.services.edge.agent.main:main"
+cloud-rag-agent = "edge_semantic_compress_intelligence.services.cloud.agent.main:main"
+knowledge-ingest = "edge_semantic_compress_intelligence.services.cloud.knowledge.main:main"
+prompt-feedback = "edge_semantic_compress_intelligence.services.cloud.feedback.main:main"
 
 [project.optional-dependencies]
 milvus = ["pymilvus>=2.4,<3"]

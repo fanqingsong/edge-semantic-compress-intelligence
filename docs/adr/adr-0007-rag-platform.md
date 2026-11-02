@@ -3,6 +3,7 @@
 - 状态：待决策
 - 日期：2026-11-01
 - 关联 PRD：PRD-06
+- 代码：[RAG](../services/cloud/rag.md)
 
 ## 背景
 

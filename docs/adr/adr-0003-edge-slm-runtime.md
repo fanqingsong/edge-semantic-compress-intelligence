@@ -3,6 +3,7 @@
 - 状态：已采纳（架构约束）；模型与格式待定
 - 日期：2026-11-01
 - 关联 PRD：PRD-02
+- 代码：[摘要](../services/edge/summarization.md)
 
 ## 背景
 

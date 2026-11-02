@@ -1,18 +1,20 @@
 # 产品需求文档索引
 
-本目录将 [系统需求文档](../requirements) 拆分为可分阶段实现和验收的 PRD。原需求编号在各文档中保留，便于追踪需求、设计和测试。
+本目录将 [系统需求文档](../requirements) 按服务拆成可分阶段实现和验收的 PRD。原需求编号在各文档中保留，便于追踪需求、设计和测试。代码位置见 [服务目录](../services/README.md)。
 
 ## PRD 列表
 
-| 编号 | PRD | 覆盖需求 | 主要依赖 |
-|---|---|---|---|
-| PRD-01 | [边缘日志采集与规则预过滤](prd-01-edge-ingestion-filtering.md) | E-01、E-02 | 无 |
-| PRD-02 | [边缘 SLM 结构化提炼与实体校验](prd-02-edge-summarization.md) | E-03、E-04 | PRD-01 |
-| PRD-03 | [边缘安全传输与弱网缓冲](prd-03-secure-transport.md) | E-05 | PRD-02；云端接入端 |
-| PRD-04 | [云端知识入库](prd-04-knowledge-ingestion.md) | C-01 | 无；为 PRD-05 提供知识数据 |
-| PRD-05 | [云端混合检索](prd-05-hybrid-retrieval.md) | C-02 | PRD-04；边缘摘要契约 |
-| PRD-06 | [云端 RAG 根因分析](prd-06-rag-analysis.md) | C-03 | PRD-05 |
-| PRD-07 | [摘要质量反馈闭环](prd-07-feedback-loop.md) | C-04 | PRD-02、PRD-06 |
+| 编号 | PRD | 服务 | 覆盖需求 | 主要依赖 |
+|---|---|---|---|---|
+| PRD-01 | [边缘日志采集与规则预过滤](prd-01-edge-ingestion-filtering.md) | [过滤](../services/edge/filtering.md) | E-01、E-02 | 无 |
+| PRD-02 | [边缘 SLM 结构化提炼与实体校验](prd-02-edge-summarization.md) | [摘要](../services/edge/summarization.md) | E-03、E-04 | PRD-01 |
+| PRD-03 | [边缘安全传输与弱网缓冲](prd-03-secure-transport.md) | [传输](../services/edge/transport.md) | E-05 | PRD-02；[cloud agent](../services/cloud/agent.md) |
+| PRD-04 | [云端知识入库](prd-04-knowledge-ingestion.md) | [知识入库](../services/cloud/knowledge.md) | C-01 | 无；为 PRD-05 提供知识数据 |
+| PRD-05 | [云端混合检索](prd-05-hybrid-retrieval.md) | [检索](../services/cloud/retrieval.md) | C-02 | PRD-04；边缘摘要契约 |
+| PRD-06 | [云端 RAG 根因分析](prd-06-rag-analysis.md) | [RAG](../services/cloud/rag.md) | C-03 | PRD-05 |
+| PRD-07 | [摘要质量反馈闭环](prd-07-feedback-loop.md) | [反馈](../services/cloud/feedback.md) | C-04 | PRD-02、PRD-06 |
+
+edge agent 与 cloud agent 是组装进程，没有单独的 PRD。说明见 [edge agent](../services/edge/agent.md) 和 [cloud agent](../services/cloud/agent.md)。
 
 ## 建议实施顺序
 

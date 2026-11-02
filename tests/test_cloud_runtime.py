@@ -2,10 +2,12 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from edge_semantic_compress_intelligence.services.cloud.runtime import (
-    DeterministicHashEmbedder,
+from edge_semantic_compress_intelligence.services.cloud.agent.runtime import (
     RagEventHandler,
     SQLiteAnalysisStore,
+)
+from edge_semantic_compress_intelligence.services.cloud.retrieval.hashing import (
+    DeterministicHashEmbedder,
 )
 from edge_semantic_compress_intelligence.shared.contract import EdgeEvent
 from edge_semantic_compress_intelligence.services.cloud.feedback import (

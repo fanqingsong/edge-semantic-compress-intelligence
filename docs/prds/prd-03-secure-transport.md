@@ -2,6 +2,8 @@
 
 **原需求：** E-05
 
+**服务：** [传输](../services/edge/transport.md)。云端接入在 [cloud agent](../services/cloud/agent.md)。
+
 ## 目标
 
 将边缘结构化记录安全、可靠地传送到云端；网络暂时不可用时在本地持久缓冲，并在恢复后补传。

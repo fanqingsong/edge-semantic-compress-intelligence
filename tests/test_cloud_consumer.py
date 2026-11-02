@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any
 from collections.abc import Sequence
 
-from edge_semantic_compress_intelligence.services.cloud.consumer import (
+from edge_semantic_compress_intelligence.services.cloud.agent.consumer import (
     MqttDelivery,
     MqttEventConsumer,
     SQLiteProcessedEventStore,

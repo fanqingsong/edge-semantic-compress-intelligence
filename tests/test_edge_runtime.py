@@ -3,7 +3,7 @@ import unittest
 from dataclasses import dataclass, field
 
 from edge_semantic_compress_intelligence.shared.contract import EdgeEvent
-from edge_semantic_compress_intelligence.services.edge.runtime import EdgeRuntime
+from edge_semantic_compress_intelligence.services.edge.agent.runtime import EdgeRuntime
 from edge_semantic_compress_intelligence.services.edge.filtering import (
     DropReason,
     FilterConfig,

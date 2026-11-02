@@ -6,7 +6,7 @@ import urllib.request
 from dataclasses import dataclass
 from typing import Any
 
-from edge_semantic_compress_intelligence.services.cloud.rag import AnalysisAnswer
+from edge_semantic_compress_intelligence.services.cloud.rag.analysis import AnalysisAnswer
 
 
 class AnalysisModelError(RuntimeError):

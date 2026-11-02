@@ -4,29 +4,35 @@ import argparse
 import logging
 import os
 
-from edge_semantic_compress_intelligence.services.cloud.adapters import (
+from edge_semantic_compress_intelligence.services.cloud.agent.consumer import (
+    MqttEventConsumer,
+    SQLiteProcessedEventStore,
+)
+from edge_semantic_compress_intelligence.services.cloud.agent.runtime import (
+    RagEventHandler,
+    SQLiteAnalysisStore,
+)
+from edge_semantic_compress_intelligence.services.cloud.feedback.service import (
+    PromptFeedbackService,
+    SQLiteFeedbackStore,
+)
+from edge_semantic_compress_intelligence.services.cloud.rag.analysis import (
+    DeterministicMockAnalysisModel,
+    RagService,
+)
+from edge_semantic_compress_intelligence.services.cloud.rag.models import (
+    OpenAICompatibleAnalysisModel,
+)
+from edge_semantic_compress_intelligence.services.cloud.retrieval.adapters import (
     BgeM3HttpEmbedder,
     MilvusVectorIndex,
     ensure_milvus_collection,
 )
-from edge_semantic_compress_intelligence.services.cloud.consumer import (
-    MqttEventConsumer,
-    SQLiteProcessedEventStore,
-)
-from edge_semantic_compress_intelligence.services.cloud.feedback import (
-    PromptFeedbackService,
-    SQLiteFeedbackStore,
-)
-from edge_semantic_compress_intelligence.services.cloud.models import OpenAICompatibleAnalysisModel
-from edge_semantic_compress_intelligence.services.cloud.rag import (
-    DeterministicMockAnalysisModel,
-    RagService,
-)
-from edge_semantic_compress_intelligence.services.cloud.retrieval import HybridRetriever
-from edge_semantic_compress_intelligence.services.cloud.runtime import (
+from edge_semantic_compress_intelligence.services.cloud.retrieval.hashing import (
     DeterministicHashEmbedder,
-    RagEventHandler,
-    SQLiteAnalysisStore,
+)
+from edge_semantic_compress_intelligence.services.cloud.retrieval.hybrid import (
+    HybridRetriever,
 )
 from edge_semantic_compress_intelligence.shared.codec import MessagePackCodec
 from edge_semantic_compress_intelligence.shared.mqtt import (

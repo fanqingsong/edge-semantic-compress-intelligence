@@ -3,6 +3,7 @@
 - 状态：已采纳（MVP 默认：bge-m3 + Milvus + MarkItDown）
 - 日期：2026-11-01
 - 关联 PRD：PRD-04
+- 代码：[知识入库](../services/cloud/knowledge.md)，向量写入接口在 [检索](../services/cloud/retrieval.md)
 
 ## 背景
 

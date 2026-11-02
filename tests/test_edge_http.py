@@ -8,8 +8,11 @@ import urllib.request
 from dataclasses import dataclass, field
 
 from edge_semantic_compress_intelligence.shared.contract import EdgeEvent
-from edge_semantic_compress_intelligence.services.edge.http import EdgeHttpConfig, create_edge_server
-from edge_semantic_compress_intelligence.services.edge.runtime import EdgeRuntime
+from edge_semantic_compress_intelligence.services.edge.agent.http import (
+    EdgeHttpConfig,
+    create_edge_server,
+)
+from edge_semantic_compress_intelligence.services.edge.agent.runtime import EdgeRuntime
 from edge_semantic_compress_intelligence.services.edge.filtering import RuleFilter
 from edge_semantic_compress_intelligence.services.edge.summarization import (
     DeterministicMockSummarizer,
