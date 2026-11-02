@@ -1,32 +1,32 @@
-# ADR-0009：边缘事件 Schema 与数据最小化
+# ADR-0009: Edge event schema and data minimization
 
-- 状态：已采纳（MVP）
-- 日期：2026-11-01
-- 关联 PRD：PRD-02、PRD-03、PRD-05
-- 代码：[shared](../services/shared.md)
+- Status: Accepted (MVP)
+- Date: 2026-11-01
+- Related PRDs: PRD-02, PRD-03, PRD-05
+- Code: [shared](../services/shared.md)
 
-## 背景
+## Context
 
-边缘 SLM、传输层和云端检索需要共享稳定的数据契约。原始日志可能包含敏感信息，且消息在断线重试时需要稳定标识以支持幂等处理。
+The edge SLM, the transport layer, and cloud retrieval need a shared stable data contract. Raw logs may contain sensitive information, and a message needs a stable identifier so retries after a disconnect can be handled idempotently.
 
-## 决策
+## Decision
 
-- MVP 定义 `EdgeEvent` Schema 版本 `1.0`，对应机器可读契约位于 `schemas/edge-event-v1.schema.json`。
-- `event_id` 使用 UUID，作为事件标识及后续传输幂等键候选。
-- 必填字段：`event_id`、`schema_version`、带时区的 ISO 8601 `timestamp`、非空 `service`、非空 `summary`。
-- 可选字段：`target_ip`、`target_port` 和 `error_code`；可省略或设为 `null`。非空 `target_ip` 必须是合法 IPv4/IPv6 地址；`target_port` 必须是 1–65535 的整数。
-- 端口只从显式 `port` / `target_port` 字段或带字段名的原始日志模式提取，避免将时间戳、错误码中的数字误识别为端口。
-- 拒绝未声明字段，事件中不包含原始日志。实体缺失时只从本地原始日志回补，不得臆造。
-- Schema 变更需更新版本和兼容性测试；不可静默改变 v1.0 字段语义。
+- The MVP defines `EdgeEvent` schema version `1.0`. The machine-readable contract is `schemas/edge-event-v1.schema.json`.
+- `event_id` is a UUID. It is the event identifier and a candidate idempotency key for later transport.
+- Required fields: `event_id`, `schema_version`, a timezone-aware ISO 8601 `timestamp`, a non-empty `service`, and a non-empty `summary`.
+- Optional fields: `target_ip`, `target_port`, and `error_code`. They may be omitted or set to `null`. A non-empty `target_ip` must be a valid IPv4 or IPv6 address. `target_port` must be an integer from 1 to 65535.
+- A port is extracted only from an explicit `port` or `target_port` field, or from a raw-log pattern that names the field, so numbers inside timestamps and error codes are not mistaken for ports.
+- Undeclared fields are rejected. The event does not contain the raw log. A missing entity is backfilled only from the local raw log and must not be invented.
+- A schema change updates the version and the compatibility tests. The meaning of a v1.0 field must not change silently.
 
-## 影响
+## Consequences
 
-- 边缘在本地完成校验与实体回补后，只向云端发送结构化摘要，降低原始日志外传风险。
-- 云端检索可直接使用 `target_ip` 和 `summary`；无 IP 的回退检索策略仍由 ADR-0006 决定。
-- `event_id` 为事件身份提供基础，但传输层仍需定义消息确认、重复投递和幂等存储语义。
-- 该 MVP 契约不满足所有可能的运维场景；若业务要求传输原文或新增字段，应先评估隐私、体积和版本兼容影响。
+- After local validation and entity backfill, the edge sends only a structured summary to the cloud, which reduces the risk of raw logs leaving the device.
+- Cloud retrieval can use `target_ip` and `summary` directly. Fallback retrieval when there is no IP is still decided by ADR-0006.
+- `event_id` provides an identity for the event. The transport layer still has to define acknowledgement, duplicate delivery, and idempotent storage.
+- This MVP contract does not cover every operations scenario. If the business requires sending the original text or adding fields, assess privacy, size, and version compatibility first.
 
-## 替代方案
+## Alternatives
 
-- 将原始日志一并传输：便于云端重新解析，但增加敏感数据暴露和带宽成本，MVP 不采用。
-- 不设置稳定事件标识：难以可靠处理重试和重复消息，不采用。
+- Also transmit the raw log: the cloud can re-parse it, but sensitive-data exposure and bandwidth cost increase. Not used in the MVP.
+- No stable event identifier: retries and duplicate messages cannot be handled reliably. Rejected.

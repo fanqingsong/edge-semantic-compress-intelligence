@@ -1,31 +1,31 @@
-# ADR-0006：元数据过滤与向量检索组合
+# ADR-0006: Metadata filter combined with vector retrieval
 
-- 状态：已采纳（MVP 严格过滤）
-- 日期：2026-11-01
-- 关联 PRD：PRD-05
-- 代码：[检索](../services/cloud/retrieval.md)
+- Status: Accepted (strict filter for the MVP)
+- Date: 2026-11-01
+- Related PRD: PRD-05
+- Code: [Retrieval](../services/cloud/retrieval.md)
 
-## 背景
+## Context
 
-仅按语义检索可能召回不同目标实体的案例；仅按实体过滤又不能依据故障描述排序。云端需要同时利用边缘 JSON 中的实体和摘要。
+Semantic search alone can recall cases for a different target entity. Entity filtering alone cannot rank by the fault description. The cloud needs both the entities in the edge JSON and the summary.
 
-## 决策
+## Decision
 
-- 检索必须同时包含 `target_ip` 元数据精确过滤和基于 `summary` 的向量相似度搜索。
-- 返回 Top-5 案例给 RAG 分析模块。
-- 在约定的标注查询集上，Top-5 相关案例命中率目标不低于 85%。
-- 不允许仅执行向量搜索来满足本需求。
-- MVP 中缺少 `target_ip` 或无精确匹配时返回空案例集，不执行纯向量回退；后续若要放宽过滤，必须通过新 ADR 决策。
-- 对向量库返回结果再次校验 IP，避免索引过滤配置错误导致跨 IP 案例泄漏。
+- Retrieval must combine an exact `target_ip` metadata filter with vector similarity search on `summary`.
+- Return the Top-5 cases to the RAG analysis module.
+- On the agreed labeled query set, the Top-5 hit rate for relevant cases is at least 85%.
+- Vector-only search does not satisfy this requirement.
+- In the MVP, a missing `target_ip` or no exact match returns an empty case set. There is no vector-only fallback. Relaxing the filter later requires a new ADR.
+- Check the IP again on results returned by the vector store, so a misconfigured index filter cannot leak cases across IP addresses.
 
-## 影响
+## Consequences
 
-- 知识入库时必须维护与检索请求一致的元数据字段。
-- `target_ip` 的严格过滤可能排除不同主机上的同类故障；MVP 的空结果行为优先避免跨主机误召回。
-- 检索评测需覆盖有/无 IP、精确匹配和无匹配场景。
+- Knowledge ingestion must maintain metadata fields that match the retrieval request.
+- A strict `target_ip` filter may exclude the same kind of fault on a different host. The MVP empty-result behavior prefers avoiding cross-host false recall.
+- Retrieval evaluation must cover cases with an IP, without an IP, with an exact match, and with no match.
 
-## 后续评估
+## Follow-up evaluation
 
-- 是否需要支持基于服务或错误码的受控放宽，以及如何证明不会跨租户/跨主机泄漏。
-- 多 IP、IPv6、地址规范化和权限过滤的处理方式。
-- Top-5 命中率的相关性标注和统计口径。
+- Whether a controlled relaxation based on service or error code is needed, and how to show that it does not leak across tenants or hosts.
+- How to handle multiple IPs, IPv6, address normalization, and permission filtering.
+- The relevance labels and statistics for the Top-5 hit rate.

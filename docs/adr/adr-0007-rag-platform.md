@@ -1,34 +1,34 @@
-# ADR-0007：RAG 编排与推理模型
+# ADR-0007: RAG orchestration and inference model
 
-- 状态：待决策
-- 日期：2026-11-01
-- 关联 PRD：PRD-06
-- 代码：[RAG](../services/cloud/rag.md)
+- Status: Pending
+- Date: 2026-11-01
+- Related PRD: PRD-06
+- Code: [RAG](../services/cloud/rag.md)
 
-## 背景
+## Context
 
-云端需要将边缘摘要和混合检索案例组装为分析上下文，生成根因分析和修复建议。技术方案列出两种编排框架和两种推理部署方式。
+The cloud must assemble the edge summary and hybrid-retrieval cases into analysis context, then produce root-cause analysis and remediation suggestions. The technical design lists two orchestration frameworks and two inference deployment options.
 
-## 当前架构约束
+## Current architecture constraints
 
-- RAG 输入包含边缘摘要和 PRD-05 返回的检索案例。
-- Prompt 必须包含 `<edge_summary>`、`<retrieved_cases>`、`<analysis_instructions>` 三段。
-- 响应时间低于 10 秒；建议可执行性评分不低于 4/5。
-- 输出应能区分检索证据与模型推断，并支持效果评估。
+- RAG input includes the edge summary and the cases returned by PRD-05.
+- The prompt must contain the three sections `<edge_summary>`, `<retrieved_cases>`, and `<analysis_instructions>`.
+- Response time is under 10 seconds. The actionability score is at least 4/5.
+- The output should separate retrieved evidence from model inference and support effect evaluation.
 
-## 待决策
+## Open decisions
 
-- 在 LlamaIndex 与 LangChain 中选择编排框架。
-- 在自托管 Qwen2.5-72B-Instruct（vLLM）与 Claude API 中选择推理模型。
-- 基于数据合规、延迟、成本、可用性和运维能力验证选型。
-- 定义超时、限流、模型不可用、检索为空和高风险建议的处理行为。
+- Choose an orchestration framework between LlamaIndex and LangChain.
+- Choose an inference model between self-hosted Qwen2.5-72B-Instruct on vLLM and the Claude API.
+- Validate the choice against data compliance, latency, cost, availability, and operational capacity.
+- Define behavior for timeout, rate limiting, model unavailability, empty retrieval, and high-risk suggestions.
 
-## 影响
+## Consequences
 
-- 模型和编排框架影响部署方式、请求延迟、运维责任和成本。
-- 模型或 Prompt 变更需通过固定评测集进行回归测试。
+- The model and the orchestration framework affect deployment, request latency, operational responsibility, and cost.
+- A model or prompt change needs regression tests on a fixed evaluation set.
 
-## 候选方案
+## Candidates
 
-- LlamaIndex 或 LangChain 作为 RAG 编排层。
-- vLLM 自托管 Qwen 模型，或调用 Claude API。
+- LlamaIndex or LangChain as the RAG orchestration layer.
+- A self-hosted Qwen model on vLLM, or a call to the Claude API.

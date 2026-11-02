@@ -1,33 +1,33 @@
-# PRD-04：云端知识入库
+# PRD-04: Cloud knowledge ingestion
 
-**原需求：** C-01
+**Original requirement:** C-01
 
-**服务：** [知识入库](../services/cloud/knowledge.md)
+**Service:** [Knowledge ingestion](../services/cloud/knowledge.md)
 
-## 目标
+## Goal
 
-将运维文档和历史工单清洗、解析并向量化，维护可增量更新、可供检索使用的知识库。
+Clean, parse, and embed operations documents and historical tickets, and maintain a knowledge base that can be updated incrementally and used for retrieval.
 
-## 范围
+## Scope
 
-- 定期导入运维文档和历史工单。
-- 支持 JSONL、Markdown、TXT；PDF、DOCX、PPTX、HTML 通过 MarkItDown 转换。Markdown 案例使用明确的 `Summary` 与 `Resolution` 字段，`Root cause`、`Target IP` 可选。
-- 清洗、解析内容并保留检索所需元数据。
-- 使用云端 Embedding 模型向量化并写入向量存储。
-- 使用内容哈希标记版本；按 source upsert 新记录并清理该 source 中不再存在的案例。
-- 启动时创建缺失的 Milvus 集合，并校验既有集合字段及 Embedding 向量维度。
-- 支持增量更新，避免重复导入或遗留已删除/已更新内容。
+- Import operations documents and historical tickets on a schedule.
+- Support JSONL, Markdown, and TXT. PDF, DOCX, PPTX, and HTML are converted with MarkItDown. Markdown cases use explicit `Summary` and `Resolution` fields. `Root cause` and `Target IP` are optional.
+- Clean and parse content, and keep the metadata required for retrieval.
+- Embed with a cloud embedding model and write the vectors to vector storage.
+- Mark versions with a content hash. Upsert new records by source, and remove cases for that source that no longer exist.
+- Create a missing Milvus collection at startup, and check the fields and embedding dimension of an existing collection.
+- Support incremental updates so content is not imported twice and deleted or updated content is not left behind.
 
-## 验收标准
+## Acceptance criteria
 
-- 支持配置的知识源按计划导入，并能处理新增和更新内容。
-- 在双方确认的文档解析评测集上，解析准确率不低于 95%。
-- 每条入库记录可追溯到源文档及版本；解析或向量化失败可定位并重试。
-- 向量化仅发生在云端；知识库能够向 PRD-05 提供检索数据。
+- Configured knowledge sources are imported on schedule, including new and updated content.
+- On a document-parsing evaluation set agreed by both sides, parsing accuracy is at least 95%.
+- Every stored record can be traced to its source document and version. A parse or embedding failure can be located and retried.
+- Embedding happens only in the cloud. The knowledge base can supply retrieval data to PRD-05.
 
-## 依赖与待决策
+## Dependencies and open decisions
 
-- MVP 默认使用 bge-m3 Embedding 服务和 Milvus；`knowledge-ingest` CLI 可按目录递归导入支持的文档。
-- MarkItDown 转换不会自动保证语义字段完整；缺少必要字段的文档会报错，需要按案例模板整理。
-- 选定方案前需评估文档类型、权限过滤、数据删除、增量游标和重建策略。
-- 定义解析准确率的分母、抽样和人工标注标准，以及源文档访问控制和敏感信息处理方式。
+- The MVP defaults to a bge-m3 embedding service and Milvus. The `knowledge-ingest` CLI can recursively import supported documents from a directory.
+- MarkItDown conversion does not guarantee that semantic fields are complete. A document missing required fields fails. It must be arranged to the case template.
+- Before locking the design, evaluate document types, permission filters, data deletion, the incremental cursor, and the rebuild strategy.
+- Define the denominator, sampling method, and human labeling standard for parsing accuracy, plus source-document access control and sensitive-information handling.

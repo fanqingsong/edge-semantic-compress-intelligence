@@ -1,17 +1,17 @@
 # edge agent
 
-代码：[`services/edge/agent`](../../../src/edge_semantic_compress_intelligence/services/edge/agent)
+Code: [`services/edge/agent`](../../../src/edge_semantic_compress_intelligence/services/edge/agent)
 
-进程：`edge-log-agent`。Compose 服务名是 `edge-agent`，监听 `8090`。
+Process: `edge-log-agent`. The Compose service name is `edge-agent`. It listens on `8090`.
 
-## 职责
+## Responsibilities
 
-这是边缘侧唯一常驻进程。它不实现过滤、摘要或传输规则，只按顺序调用：
+This is the only long-running process on the edge. It does not implement filtering, summarization, or transport rules. It calls them in order:
 
-1. [过滤](filtering.md)
-2. [摘要](summarization.md)，按服务各生成一个事件
-3. [传输](transport.md)
+1. [Filtering](filtering.md)
+2. [Summarization](summarization.md), one event per service
+3. [Transport](transport.md)
 
-Fluent Bit 把日志批次 `POST` 到 `/v1/logs`。正文是 UTF-8 日志行，默认上限 1 MiB。`GET /healthz` 只表示进程存活，不表示 outbox 已清空或云端已处理。
+Fluent Bit `POST`s a log batch to `/v1/logs`. The body is UTF-8 log lines, with a default limit of 1 MiB. `GET /healthz` means only that the process is alive. It does not mean the outbox is empty or that the cloud has processed the events.
 
-本地启动和证书见 [本地开发](../../local-development.md)。
+Local startup and certificates are in [local development](../../local-development.md).

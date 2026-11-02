@@ -1,36 +1,36 @@
-# ADR-0008：摘要质量反馈与 Prompt 治理
+# ADR-0008: Summary-quality feedback and prompt governance
 
-- 状态：已采纳（MVP 人工审核，不自动修改线上 Prompt）
-- 日期：2026-11-01
-- 关联 PRD：PRD-07
-- 代码：[反馈](../services/cloud/feedback.md)
+- Status: Accepted (MVP human review; the live prompt is not changed automatically)
+- Date: 2026-11-01
+- Related PRD: PRD-07
+- Code: [Feedback](../services/cloud/feedback.md)
 
-## 背景
+## Context
 
-云端分析可能发现边缘摘要缺少关键实体或上下文。系统要求标记缺失案例、生成 Prompt 优化建议并回流边缘，但尚未定义审核、发布和回滚流程。
+Cloud analysis may find that an edge summary is missing a critical entity or context. The system requires marking those cases, generating prompt-optimization suggestions, and sending them back to the edge. Review, publication, and rollback are not defined yet.
 
-## 当前架构约束
+## Current architecture constraints
 
-- 反馈应由可追溯的问题案例触发，并能关联摘要、Prompt 版本和分析结果。
-- 目标为每周至少 3 条有效 Prompt 迭代建议；摘要信息完整度每月提升至少 5%。
-- 建议效果需通过固定口径和样本进行评估。
+- Feedback is triggered by a traceable problem case and can be tied to the summary, the prompt version, and the analysis result.
+- The target is at least 3 valid prompt-iteration suggestions per week, and at least a 5% monthly increase in summary-information completeness.
+- Suggestion effect is evaluated with a fixed definition and a fixed sample.
 
-## 决策
+## Decision
 
-- Cloud RAG 处理后，若关键实体缺失或没有召回案例，生成可追溯的 Prompt 改进建议。
-- 建议记录包含字段状态/召回数证据、具体 Prompt patch、预期指标、合成正反验证样本和风险说明。
-- SQLite 按 `event_id + category` 去重，只保存事件 ID 和摘要质量信号，不复制原始日志或摘要文本。
-- 状态只允许 `pending -> approved/rejected -> published`；只有已批准建议可标记发布。
-- `prompt-feedback` CLI 提供列表、审核、发布和近 7 天统计；发布状态由人工操作，不会自动替换 Edge Agent 的线上 Prompt。
+- After cloud RAG processing, if a critical entity is missing or no case is recalled, generate a traceable prompt-improvement suggestion.
+- A suggestion record contains field-status or recall-count evidence, a concrete prompt patch, the expected metric, synthetic positive and negative validation samples, and a risk note.
+- SQLite deduplicates by `event_id + category` and stores only the event ID and the summary-quality signal. It does not copy the raw log or the summary text.
+- The only allowed states are `pending -> approved/rejected -> published`. Only an approved suggestion can be marked published.
+- The `prompt-feedback` CLI provides listing, review, publication, and statistics for the last 7 days. Publication status is a human action. It does not automatically replace the live prompt of the edge agent.
 
-## 后续配置
+## Follow-up configuration
 
-- 定义“有效建议”和摘要完整度指标的正式标注规范及责任人。
-- 实现审核通过建议的安全分发、灰度和边缘回滚；当前发布操作只记录状态，不推送配置。
-- 定义 Prompt/样本中的敏感数据脱敏和留存要求。
+- Define the formal labeling standard and the owner for a "valid suggestion" and for the summary-completeness metric.
+- Implement safe distribution, canary release, and edge rollback for approved suggestions. The current publish action only records status and does not push configuration.
+- Define redaction and retention requirements for sensitive data in prompts and samples.
 
-## 影响
+## Consequences
 
-- 未定义审核和回滚前，不应将自动生成的建议直接更新到生产边缘设备。
-- 反馈闭环依赖 PRD-02 的摘要契约和 PRD-06 的分析结果。
-- 每月提升指标需控制评测集变化，避免将样本变化误判为质量提升。
+- Until review and rollback are defined, an automatically generated suggestion must not be applied directly to a production edge device.
+- The feedback loop depends on the summary contract from PRD-02 and the analysis result from PRD-06.
+- The monthly improvement metric must control for changes in the evaluation set, so a sample change is not mistaken for a quality gain.

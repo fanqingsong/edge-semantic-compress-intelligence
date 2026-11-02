@@ -1,29 +1,29 @@
-# ADR-0002：边缘采集与预过滤引擎
+# ADR-0002: Edge collection and pre-filter engine
 
-- 状态：已采纳（默认方案）
-- 日期：2026-11-01
-- 关联 PRD：PRD-01
-- 代码：[过滤](../services/edge/filtering.md)，采集配置在 `deploy/fluent-bit`
+- Status: Accepted (default)
+- Date: 2026-11-01
+- Related PRD: PRD-01
+- Code: [Filtering](../services/edge/filtering.md). Collection configuration is in `deploy/fluent-bit`.
 
-## 背景
+## Context
 
-边缘侧需要采集文件和 Syslog 日志，并运行四层低开销规则过滤；设备资源受限，且需要断点续传、磁盘缓冲和 Prometheus 指标。
+The edge must collect file and syslog logs and run four low-cost rule layers. Devices are resource constrained, and the system needs checkpoint resume, disk buffering, and Prometheus metrics.
 
-## 决策
+## Decision
 
-- 默认使用 Fluent Bit 作为边缘采集与预过滤引擎。
-- 过滤顺序为 L1 格式校验、L2 状态码过滤、L3 关键字黑名单、L4 频率抑制。
-- 使用文件系统缓冲支持断网期间的本地积压；过滤过程不使用 AI 或 Embedding 插件。
-- 按 PRD-01 要求暴露 CPU、内存、吞吐量和过滤计数指标。
-- 只有用户明确指定时才切换为 Vector。
+- Use Fluent Bit by default as the edge collection and pre-filter engine.
+- Filter in this order: L1 format check, L2 status-code filter, L3 keyword denylist, L4 rate suppression.
+- Use filesystem buffering for local backlog while disconnected. Filtering does not use AI or embedding plugins.
+- Expose CPU, memory, throughput, and filter-count metrics as required by PRD-01.
+- Switch to Vector only when the user explicitly asks for it.
 
-## 影响
+## Consequences
 
-- 配置、过滤规则和部署示例优先按 Fluent Bit 编写。
-- 需要在目标设备验证插件兼容性、资源占用、日志轮转与断点恢复行为。
-- 过滤阈值及预期拦截率应写入配置注释并由测试集验证。
+- Configuration, filter rules, and deployment examples are written for Fluent Bit first.
+- Plugin compatibility, resource use, log rotation, and checkpoint recovery must be verified on the target device.
+- Filter thresholds and the expected block rate belong in configuration comments and are checked against the test set.
 
-## 替代方案
+## Alternatives
 
-- Vector：适用于规则复杂、需要 VRL 表达能力的场景，但不是默认实现。
-- 自研采集器：会重复实现成熟采集、缓冲和监控能力，本阶段不采用。
+- Vector: suitable when rules are complex and VRL expressiveness is needed. It is not the default implementation.
+- A custom collector: it would reimplement mature collection, buffering, and monitoring. Not adopted at this stage.

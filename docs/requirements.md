@@ -1,39 +1,42 @@
-# 边缘日志智能压缩与云端RAG系统需求文档
+# Requirements: edge log compression and cloud RAG
 
-实现按服务拆分，对照见 [服务目录](services/README.md)。本页保留原始需求编号。
+The implementation is split by service. The mapping is in the [service catalog](services/README.md). This page keeps the original requirement IDs.
 
-## 1. 项目背景
-构建一套“边缘结构化压缩 + 云端解耦 RAG”的 AIOps 日志分析系统。边缘侧负责日志预过滤与 SLM 结构化提炼，云端负责高精度向量检索与根因推理，实现低带宽、低延迟、高精度的故障诊断闭环。
+## 1. Background
 
-## 2. 核心功能需求
+Build an AIOps log analysis system that combines structured compression on the edge with a decoupled RAG pipeline in the cloud. The edge pre-filters logs and distills them with an SLM. The cloud runs high-precision vector retrieval and root-cause reasoning. The result is a fault-diagnosis loop with low bandwidth, low latency, and high precision.
 
-### 2.1 边缘侧
+## 2. Functional requirements
 
-| ID | 功能模块 | 描述 | 验收标准 |
+### 2.1 Edge
+
+| ID | Module | Description | Acceptance criteria |
 | :--- | :--- | :--- | :--- |
-| E-01 | 日志采集 | 支持从指定文件路径/Syslog 采集原始日志 | 不丢日志，支持断点续传 |
-| E-02 | 规则预过滤 | L1格式校验、L2状态码过滤、L3关键字黑名单、L4频率抑制 | 纯规则执行，零AI开销；无效日志拦截率≥90% |
-| E-03 | SLM结构化提炼 | 将过滤后日志批量发送给本地SLM，输出符合JSON Schema的结构化摘要 | JSON合法率100%；单批处理延迟<2s |
-| E-04 | 实体校验兜底 | 对SLM输出进行IP/端口/错误码正则校验，缺失时自动补全 | 关键实体字段完整率≥99% |
-| E-05 | 安全传输 | 通过MQTT/Kafka将结构化JSON加密传输至云端 | 支持mTLS认证；弱网下本地磁盘缓冲不丢数据 |
+| E-01 | Log collection | Collect raw logs from a configured file path or syslog | No log loss; resume from the last checkpoint |
+| E-02 | Rule pre-filter | L1 format check, L2 status-code filter, L3 keyword denylist, L4 rate suppression | Rules only, with no AI cost; at least 90% of invalid logs are blocked |
+| E-03 | SLM structured distillation | Send filtered log batches to a local SLM and emit a structured summary that matches a JSON Schema | 100% valid JSON; per-batch latency under 2s |
+| E-04 | Entity validation fallback | Validate IP, port, and error code in the SLM output with regular expressions, and fill missing values | At least 99% of critical entity fields are complete |
+| E-05 | Secure transport | Encrypt the structured JSON and send it to the cloud over MQTT or Kafka | mTLS authentication; local disk buffering with no data loss on a weak network |
 
-### 2.2 云端侧
+### 2.2 Cloud
 
-| ID | 功能模块 | 描述 | 验收标准 |
+| ID | Module | Description | Acceptance criteria |
 | :--- | :--- | :--- | :--- |
-| C-01 | 知识入库管道 | 定期清洗运维文档/历史工单，用云端Embedding模型向量化入库 | 支持增量更新；文档解析准确率≥95% |
-| C-02 | 混合检索 | 基于边缘JSON中的target_ip做精确过滤 + summary做向量相似度搜索 | Top-5召回相关案例命中率≥85% |
-| C-03 | RAG推理 | 将召回案例+边缘摘要组装Prompt，调用大模型生成根因分析与修复建议 | 响应时间<10s；建议可执行性评分≥4/5 |
-| C-04 | 反馈闭环 | 标记边缘摘要缺失案例，自动生成Prompt优化建议回流边缘 | 每周产出≥3条有效Prompt迭代建议 |
+| C-01 | Knowledge ingestion pipeline | Periodically clean operations documents and historical tickets, embed them with a cloud embedding model, and store the vectors | Incremental updates; document parsing accuracy of at least 95% |
+| C-02 | Hybrid retrieval | Exact filter on `target_ip` from the edge JSON, plus vector similarity search on `summary` | Top-5 recall of relevant cases of at least 85% |
+| C-03 | RAG reasoning | Assemble retrieved cases and the edge summary into a prompt, then call a large model for root-cause analysis and remediation suggestions | Response time under 10s; actionability score of at least 4/5 |
+| C-04 | Feedback loop | Mark cases where the edge summary is insufficient, and generate prompt-optimization suggestions that flow back to the edge | At least 3 valid prompt-iteration suggestions per week |
 
-## 3. 非功能性需求
-- **边缘资源约束**：预过滤引擎内存 < 50MB；SLM显存占用 < 2GB；整机功耗 < 30W。
-- **确定性输出**：边缘SLM必须启用 JSON Schema / Grammar 强制约束，禁止自由文本生成。
-- **解耦原则**：边缘侧不部署任何 Embedding 模型；云端不依赖边缘侧模型版本。
-- **可观测性**：边缘预过滤引擎自身CPU/内存/吞吐量需暴露 Prometheus 指标。
+## 3. Non-functional requirements
 
-## 4. 术语表
-- **Vector**：指 Datadog 开源的数据管道工具，非向量数据库或嵌入模型。
-- **SLM**：Small Language Model，参数量≤3B的边缘专用小模型。
-- **VRL**：Vector Remap Language，Vector 的声明式转换语言。
-- **RAG**：Retrieval-Augmented Generation，检索增强生成。
+- **Edge resource limits**: pre-filter engine memory under 50 MB; SLM video memory under 2 GB; whole-device power under 30 W.
+- **Deterministic output**: the edge SLM must be constrained by a JSON Schema or grammar. Free-text generation is not allowed.
+- **Decoupling**: the edge does not run any embedding model. The cloud does not depend on the edge model version.
+- **Observability**: the edge pre-filter exposes its own CPU, memory, and throughput as Prometheus metrics.
+
+## 4. Glossary
+
+- **Vector**: the open-source data pipeline from Datadog. In this document it is not a vector database or an embedding model.
+- **SLM**: Small Language Model, an edge model with at most 3B parameters.
+- **VRL**: Vector Remap Language, the declarative transform language used by Vector.
+- **RAG**: Retrieval-Augmented Generation.

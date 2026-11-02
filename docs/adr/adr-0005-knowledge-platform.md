@@ -1,44 +1,44 @@
-# ADR-0005：云端知识入库与向量存储
+# ADR-0005: Cloud knowledge ingestion and vector storage
 
-- 状态：已采纳（MVP 默认：bge-m3 + Milvus + MarkItDown）
-- 日期：2026-11-01
-- 关联 PRD：PRD-04
-- 代码：[知识入库](../services/cloud/knowledge.md)，向量写入接口在 [检索](../services/cloud/retrieval.md)
+- Status: Accepted (MVP default: bge-m3 + Milvus + MarkItDown)
+- Date: 2026-11-01
+- Related PRD: PRD-04
+- Code: [Knowledge ingestion](../services/cloud/knowledge.md). The vector-write interface is in [Retrieval](../services/cloud/retrieval.md).
 
-## 背景
+## Context
 
-云端需要持续解析运维文档和历史工单，向量化并支持增量更新，为混合检索提供数据。技术方案列出多个解析器和向量存储候选。
+The cloud must keep parsing operations documents and historical tickets, embed them, and support incremental updates, so hybrid retrieval has data to search. The technical design lists several parsers and vector stores.
 
-## 当前架构约束
+## Current architecture constraints
 
-- 文档清洗、解析和 Embedding 均在云端执行。
-- 知识数据支持增量更新，并保留来源追溯信息。
-- 技术方案推荐 bge-m3；文档解析候选为 Unstructured 或 MarkItDown；向量存储候选为 Milvus 2.x 或 Elasticsearch 8.x+。
-- 原始 Markdown/TXT 通过确定性字段解析；PDF、DOCX、PPTX、HTML 使用 MarkItDown 转为 Markdown，再提取案例字段。
-- 文档必须显式包含 `Summary` 和 `Resolution` 字段；不满足结构的文档报错，不用模型猜测或生成知识事实。
+- Document cleaning, parsing, and embedding all run in the cloud.
+- Knowledge data supports incremental updates and keeps source traceability.
+- The technical design recommends bge-m3. Document-parsing candidates are Unstructured and MarkItDown. Vector-store candidates are Milvus 2.x and Elasticsearch 8.x or newer.
+- Raw Markdown and TXT are parsed by deterministic fields. PDF, DOCX, PPTX, and HTML are converted to Markdown with MarkItDown, then case fields are extracted.
+- A document must explicitly contain `Summary` and `Resolution`. A document that does not match the structure fails. A model does not guess or generate knowledge facts.
 
-## 决策
+## Decision
 
-- 按 MVP 默认技术栈使用 bge-m3 Embedding 服务和 Milvus 向量存储；保留 `TextEmbedder`、`VectorIndex` 适配边界，允许后续替换。
-- `knowledge-ingest` CLI 可解析 JSONL、Markdown、TXT 及 MarkItDown 支持的 PDF、DOCX、PPTX、HTML，并增量写入 Milvus。
-- 当前代码提供 bge-m3 HTTP 客户端、Milvus VectorIndex 适配器和集合初始化函数；集合初始化会创建缺失集合，并拒绝必需字段或向量维度不匹配的已有集合。
-- Milvus 集合需要包含 `case_id`（主键）、`summary`、`resolution`、`source`、`target_ip`、`version` 和 `embedding` 向量字段；默认向量维度为 1024，需与实际模型输出一致。
-- `embedding` 使用 COSINE metric 和 AUTOINDEX；集合初始化不启动 Milvus 服务，也不替代生产环境备份/迁移流程。
-- 已通过本地 Milvus 2.5.4 集成测试验证集合创建、向量 upsert、`target_ip` 精确过滤检索和 source 级删除。
+- The MVP default stack is a bge-m3 embedding service and Milvus. Keep the `TextEmbedder` and `VectorIndex` adapter boundaries so they can be replaced later.
+- The `knowledge-ingest` CLI can parse JSONL, Markdown, TXT, and the PDF, DOCX, PPTX, and HTML formats supported by MarkItDown, and write them to Milvus incrementally.
+- The current code provides a bge-m3 HTTP client, a Milvus `VectorIndex` adapter, and a collection initializer. Initialization creates a missing collection and rejects an existing collection whose required fields or vector dimension do not match.
+- The Milvus collection needs `case_id` (primary key), `summary`, `resolution`, `source`, `target_ip`, `version`, and an `embedding` vector field. The default vector dimension is 1024 and must match the actual model output.
+- `embedding` uses the COSINE metric and AUTOINDEX. Collection initialization does not start the Milvus service and does not replace production backup or migration.
+- A local Milvus 2.5.4 integration test has verified collection creation, vector upsert, exact `target_ip` filtered retrieval, and source-level deletion.
 
-## 后续配置
+## Follow-up configuration
 
-- 扩充原始文档格式覆盖和解析准确率评测集；当前不提供 OCR，也不支持没有显式案例字段的任意散文自动语义拆分。
-- 确认实际 bge-m3 服务部署、向量维度、索引参数、集合创建和升级迁移方式。
-- 定义增量更新、重复文档识别、删除传播、失败重试和全量重建策略。
-- 定义文档解析准确率不低于 95% 的评测集、抽样方法与标注标准。
+- Expand coverage of raw document formats and the parsing-accuracy evaluation set. There is no OCR today, and arbitrary prose without explicit case fields is not split into cases automatically.
+- Confirm the real bge-m3 deployment, vector dimension, index parameters, collection creation, and upgrade migration.
+- Define incremental updates, duplicate-document detection, delete propagation, failure retry, and full rebuild.
+- Define the evaluation set, sampling method, and labeling standard for the parsing-accuracy target of at least 95%.
 
-## 影响
+## Consequences
 
-- PRD-05 的过滤字段和召回能力依赖这里确定的元数据结构与索引能力。
-- 更换 Embedding 模型或向量存储需要评估重算向量、索引迁移和检索质量回归。
+- The filter fields and recall capability of PRD-05 depend on the metadata structure and index capability decided here.
+- Replacing the embedding model or the vector store requires an assessment of vector recomputation, index migration, and retrieval-quality regression.
 
-## 候选方案
+## Candidates
 
-- Milvus：专用向量数据库方向。
-- Elasticsearch：可复用现有搜索基础设施并承载元数据检索。
+- Milvus: a dedicated vector database.
+- Elasticsearch: can reuse existing search infrastructure and also carry metadata retrieval.

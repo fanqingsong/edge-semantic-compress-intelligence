@@ -1,22 +1,22 @@
-# 反馈
+# Feedback
 
-代码：[`services/cloud/feedback`](../../../src/edge_semantic_compress_intelligence/services/cloud/feedback)
+Code: [`services/cloud/feedback`](../../../src/edge_semantic_compress_intelligence/services/cloud/feedback)
 
-进程：`prompt-feedback`。Compose profile `tools` 中的服务名是 `feedback-admin`。
+Process: `prompt-feedback`. The service name in the Compose profile `tools` is `feedback-admin`.
 
-关联：[PRD-07](../../prds/prd-07-feedback-loop.md)、[ADR-0008](../../adr/adr-0008-feedback-governance.md)
+Related: [PRD-07](../../prds/prd-07-feedback-loop.md), [ADR-0008](../../adr/adr-0008-feedback-governance.md)
 
-## 职责
+## Responsibilities
 
-根据 RAG 结果记录摘要质量建议，并提供人工审核。发布只改变状态，不替换边缘 Prompt。
+Record summary-quality suggestions from RAG results and provide human review. Publishing only changes status. It does not replace the edge prompt.
 
-[cloud agent](agent.md)在分析完成后调用观察接口：
+The [cloud agent](agent.md) calls the observation interface after analysis completes:
 
-- 可选实体缺失时生成 `missing_entities`。
-- 实体齐全但召回为空时生成 `no_retrieved_cases`。
-- 两类都按 `event_id + category` 去重，只保存事件标识和质量信号。
+- Missing optional entities produce `missing_entities`.
+- Complete entities with empty recall produce `no_retrieved_cases`.
+- Both kinds are deduplicated by `event_id + category`. Only the event identifier and the quality signal are stored.
 
-建议包含证据、Prompt patch、预期指标、正反验证样本和风险说明。状态只允许：
+A suggestion includes evidence, a prompt patch, the expected metric, positive and negative validation samples, and a risk note. The only allowed states are:
 
 ```mermaid
 stateDiagram-v2
@@ -26,4 +26,4 @@ stateDiagram-v2
 	approved --> published
 ```
 
-CLI 提供 `list`、`review`、`publish` 和近 7 天统计。命令见 [本地开发](../../local-development.md)。
+The CLI provides `list`, `review`, `publish`, and statistics for the last 7 days. Commands are in [local development](../../local-development.md).

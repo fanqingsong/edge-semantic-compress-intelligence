@@ -1,17 +1,17 @@
 # cloud agent
 
-代码：[`services/cloud/agent`](../../../src/edge_semantic_compress_intelligence/services/cloud/agent)
+Code: [`services/cloud/agent`](../../../src/edge_semantic_compress_intelligence/services/cloud/agent)
 
-进程：`cloud-rag-agent`。Compose 服务名是 `cloud-agent`。
+Process: `cloud-rag-agent`. The Compose service name is `cloud-agent`.
 
-## 职责
+## Responsibilities
 
-这是云端在线链路的常驻进程。它订阅 `edge/events`，然后调用：
+This is the long-running process on the cloud online path. It subscribes to `edge/events`, then calls:
 
-1. [检索](retrieval.md)
-2. [RAG](rag.md)，结果写入 `analyses.sqlite3`
-3. [反馈](feedback.md)的观察接口，建议写入 `feedback.sqlite3`
+1. [Retrieval](retrieval.md)
+2. [RAG](rag.md), writing the result to `analyses.sqlite3`
+3. The observation interface of [feedback](feedback.md), writing suggestions to `feedback.sqlite3`
 
-消费记录在 `processed.sqlite3`。处理成功且 `event_id` 与载荷哈希落盘后才手动 ACK。相同 ID、相同载荷的重复消息直接 ACK，不再次调用处理器。相同 ID、不同载荷不 ACK。解码失败或处理失败也不 ACK。
+Consumption records live in `processed.sqlite3`. A manual ACK is sent only after processing succeeds and both `event_id` and the payload hash are persisted. A duplicate with the same ID and the same payload is ACKed immediately and is not passed to the processor again. The same ID with a different payload is not ACKed. A decode failure or a processing failure is not ACKed either.
 
-`cloud-agent` 证书只可订阅 `edge/events`。知识入库和反馈审核不在这个进程里。
+The `cloud-agent` certificate may only subscribe to `edge/events`. Knowledge ingestion and feedback review are not part of this process.

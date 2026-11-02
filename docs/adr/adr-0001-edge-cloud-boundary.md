@@ -1,28 +1,28 @@
-# ADR-0001：边缘与云端职责解耦
+# ADR-0001: Edge and cloud responsibility split
 
-- 状态：已采纳
-- 日期：2026-11-01
-- 关联 PRD：PRD-01、PRD-02、PRD-03、PRD-04、PRD-05、PRD-06、PRD-07
-- 代码：[服务目录](../services/README.md)
+- Status: Accepted
+- Date: 2026-11-01
+- Related PRDs: PRD-01, PRD-02, PRD-03, PRD-04, PRD-05, PRD-06, PRD-07
+- Code: [service catalog](../services/README.md)
 
-## 背景
+## Context
 
-系统需要在边缘资源受限和网络不稳定的环境中处理日志，同时依赖云端更高精度的知识检索与推理。若边缘承担向量化或云端绑定边缘模型版本，会增加设备负担并造成组件耦合。
+The system must process logs on the edge, where resources are limited and the network is unstable, while relying on the cloud for higher-precision knowledge retrieval and reasoning. If the edge also embeds vectors, or if the cloud is bound to an edge model version, the device carries extra load and the components become coupled.
 
-## 决策
+## Decision
 
-- 边缘负责日志采集、规则预过滤、本地 SLM 结构化提炼、实体校验和安全传输。
-- 云端负责知识解析与 Embedding、向量存储、混合检索、RAG 推理和摘要质量反馈。
-- 边缘不部署 Embedding 模型；云端接口以稳定的数据契约为边界，不依赖边缘 SLM 的具体模型版本。
-- 边缘预过滤必须保持纯规则执行，不调用 AI。
+- The edge owns log collection, rule pre-filtering, local SLM structured distillation, entity validation, and secure transport.
+- The cloud owns knowledge parsing and embedding, vector storage, hybrid retrieval, RAG reasoning, and summary-quality feedback.
+- The edge does not run an embedding model. The cloud interface is bounded by a stable data contract and does not depend on the specific edge SLM version.
+- Edge pre-filtering stays rule-only and does not call AI.
 
-## 影响
+## Consequences
 
-- 边缘到云端的结构化消息 Schema 成为跨部署边界的核心契约，需要版本管理和兼容策略。
-- 边缘 SLM 与云端 Embedding/LLM 可独立升级，但契约变更仍需兼容性测试。
-- 云端可独立使用更大模型；边缘在断网期间依赖本地采集与缓冲能力。
+- The structured message schema from edge to cloud is the core contract across the deployment boundary. It needs versioning and a compatibility policy.
+- The edge SLM and the cloud embedding model and LLM can be upgraded independently. A contract change still needs a compatibility test.
+- The cloud can use a larger model on its own. While offline, the edge depends on local collection and buffering.
 
-## 替代方案
+## Alternatives
 
-- 在边缘部署 Embedding 并完成全链路检索：因资源开销和职责耦合，不采用。
-- 云端直接依赖边缘模型运行时或模型版本：会限制独立升级，不采用。
+- Run embeddings on the edge and complete retrieval there. Rejected because of resource cost and coupled responsibilities.
+- Let the cloud depend directly on the edge model runtime or model version. Rejected because it blocks independent upgrades.

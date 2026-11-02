@@ -1,46 +1,46 @@
-# ADR-0004：边缘到云端的安全消息传输
+# ADR-0004: Secure messaging from edge to cloud
 
-- 状态：已采纳（MVP：MQTT v5 + MessagePack + SQLite outbox）
-- 日期：2026-11-01
-- 关联 PRD：PRD-03
-- 代码：[传输](../services/edge/transport.md)，云端消费在 [cloud agent](../services/cloud/agent.md)
+- Status: Accepted (MVP: MQTT v5 + MessagePack + SQLite outbox)
+- Date: 2026-11-01
+- Related PRD: PRD-03
+- Code: [Transport](../services/edge/transport.md). Cloud consumption is in the [cloud agent](../services/cloud/agent.md).
 
-## 背景
+## Context
 
-边缘需要通过不稳定网络发送结构化摘要。系统要求 mTLS 和本地磁盘缓冲；技术方案提出 MQTT v5 与 Kafka 两个候选，并指定 MessagePack 序列化。
+The edge must send structured summaries over an unstable network. The system requires mTLS and local disk buffering. The technical design proposes MQTT v5 and Kafka, and specifies MessagePack serialization.
 
-## 当前约束
+## Current constraints
 
-- 传输必须使用 mTLS 双向认证。
-- 结构化消息使用 MessagePack 在线路上传输；模型生成的 JSON 与线路编码边界需要明确。
-- 弱网时在本地磁盘缓冲，恢复连接后补传。
-- 必须具备可验证的消息确认、重试和幂等处理机制。
+- Transport must use mutual TLS.
+- Structured messages travel on the wire as MessagePack. The boundary between model-generated JSON and the wire encoding must be explicit.
+- On a weak network, buffer on local disk and retry after the connection returns.
+- Message acknowledgement, retry, and idempotent handling must be verifiable.
 
-## 决策
+## Decision
 
-- MVP 采用 MQTT v5，使用 QoS 1 发布结构化事件并以 MessagePack 编码。
-- 使用 SQLite 持久 outbox；默认容量上限 100 MiB，可配置。达到上限时拒绝新入队并显式报错，不静默丢弃或覆盖旧事件。
-- 仅在收到 broker 发布确认后删除本地 outbox 记录。此确认不代表云端业务已处理；云端仍需按 `event_id` 幂等消费。
-- 云端消费者启用 MQTT 手动 ACK：业务处理成功并持久记录 `event_id` 后才 ACK；相同 ID/相同内容的重复消息直接 ACK，不重复调用处理器；相同 ID/不同内容不 ACK。
-- 该模式提供至少一次投递，不承诺 exactly-once；业务处理器需要按 `event_id` 幂等，因为进程可能在业务成功后、去重记录落盘前退出。
-- MQTT broker 监听 TLS 8883，强制验证 CA 签发的客户端证书，并以证书 CN 映射 ACL 身份。
-- ACL 仅允许 `edge-agent` 向 `edge/events` 发布、`cloud-agent` 从该主题订阅；独立 `healthcheck` 身份只读 `$SYS/broker/uptime`。
-- Edge/Cloud 客户端和 Broker 都配置 mTLS；本地开发使用 `scripts/generate-dev-mqtt-certs.sh` 生成的自签名开发证书，证书目录被 Git 忽略。
-- 生产必须使用组织 CA 和独立设备证书，配置轮换、吊销和受控密钥存储；不得复用开发 CA/密钥。
+- The MVP uses MQTT v5. Structured events are published at QoS 1 and encoded as MessagePack.
+- Use a persistent SQLite outbox. The default capacity is 100 MiB and is configurable. At the limit, new enqueue attempts are rejected with an explicit error. Old events are not dropped silently and are not overwritten.
+- Delete a local outbox record only after the broker acknowledges the publish. That acknowledgement does not mean the cloud has finished business processing. The cloud still consumes idempotently by `event_id`.
+- The cloud consumer uses MQTT manual ACK. It ACKs only after business processing succeeds and `event_id` is persisted. A duplicate with the same ID and the same content is ACKed immediately and is not passed to the processor again. The same ID with different content is not ACKed.
+- This mode provides at-least-once delivery. It does not promise exactly-once. The business processor must be idempotent by `event_id`, because the process may exit after business success and before the deduplication record is persisted.
+- The MQTT broker listens on TLS 8883, requires a client certificate issued by the CA, and maps the certificate CN to an ACL identity.
+- The ACL allows only `edge-agent` to publish to `edge/events` and `cloud-agent` to subscribe to that topic. A separate `healthcheck` identity may only read `$SYS/broker/uptime`.
+- Edge and cloud clients and the broker are all configured for mTLS. Local development uses the self-signed certificates from `scripts/generate-dev-mqtt-certs.sh`. The certificate directory is gitignored.
+- Production must use an organizational CA and per-device certificates, with rotation, revocation, and controlled key storage. The development CA and keys must not be reused.
 
-## 后续配置
+## Follow-up configuration
 
-- 定义目标设备的磁盘配额、最大离线时长和 outbox 满载告警/处置。
-- 为生产 MQTT broker 配置组织 CA、证书轮换/吊销和云端消费确认策略。
-- 评估本地 outbox 的静态数据加密需求；当前仅限制数据库文件权限，不提供磁盘加密。
-- 若未来已有 Kafka 基础设施或吞吐量需求改变，再评估新增 Kafka transport adapter。
+- Define the target device disk quota, the maximum offline duration, and the alert and response when the outbox is full.
+- Configure an organizational CA, certificate rotation and revocation, and the cloud consumption acknowledgement policy for the production MQTT broker.
+- Evaluate encryption at rest for the local outbox. Today only database file permissions are restricted. Disk encryption is not provided.
+- If a Kafka infrastructure already exists later, or throughput requirements change, evaluate adding a Kafka transport adapter.
 
-## 影响
+## Consequences
 
-- 协议选择会影响边缘资源占用、云端接入方式、部署复杂度和可实现的交付语义。
-- 生产实现前需要端到端断网、进程重启、重复投递和证书失效测试。
+- The protocol choice affects edge resource use, cloud ingress, deployment complexity, and the delivery semantics that can be achieved.
+- Before production, run end-to-end tests for disconnection, process restart, duplicate delivery, and certificate expiry.
 
-## 替代方案
+## Alternatives
 
-- MQTT v5：更贴近弱网和边缘设备场景。
-- Kafka：更适合已有 Kafka 基础设施且吞吐量要求较高的场景。
+- MQTT v5: closer to weak-network and edge-device conditions.
+- Kafka: a better fit when Kafka infrastructure already exists and throughput requirements are higher.

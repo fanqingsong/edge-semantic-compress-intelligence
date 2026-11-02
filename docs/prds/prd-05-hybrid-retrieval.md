@@ -1,29 +1,29 @@
-# PRD-05：云端混合检索
+# PRD-05: Cloud hybrid retrieval
 
-**原需求：** C-02
+**Original requirement:** C-02
 
-**服务：** [检索](../services/cloud/retrieval.md)
+**Service:** [Retrieval](../services/cloud/retrieval.md)
 
-## 目标
+## Goal
 
-根据边缘摘要中的实体和语义内容，从运维知识库中检索可用于故障分析的历史案例。
+Use the entities and semantic content of an edge summary to retrieve historical cases from the operations knowledge base that can be used for fault analysis.
 
-## 范围
+## Scope
 
-- 接收结构化边缘摘要。
-- 对 `target_ip` 执行元数据精确过滤，并对 `summary` 执行向量相似度搜索。
-- 返回排序后的 Top-5 相关案例及必要元数据，供 PRD-06 使用。
+- Accept a structured edge summary.
+- Apply an exact metadata filter on `target_ip` and a vector similarity search on `summary`.
+- Return the ranked Top-5 relevant cases and the metadata PRD-06 needs.
 
-## 验收标准
+## Acceptance criteria
 
-- 检索同时执行元数据过滤和向量搜索，不允许仅使用向量检索。
-- 在双方确认的标注查询集上，Top-5 相关案例命中率不低于 85%。
-- 返回结果包含可追溯的知识源标识及相关性信息，便于评估与问题定位。
-- MVP 中缺少 `target_ip` 或无精确匹配时返回空案例集，不允许降级成纯向量检索。
+- Retrieval runs the metadata filter and the vector search together. Vector-only retrieval is not allowed.
+- On a labeled query set agreed by both sides, Top-5 hit rate for relevant cases is at least 85%.
+- Returned results include a traceable knowledge-source identifier and relevance information, so they can be evaluated and diagnosed.
+- In the MVP, a missing `target_ip` or no exact match returns an empty case set. Falling back to vector-only retrieval is not allowed.
 
-## 依赖与待决策
+## Dependencies and open decisions
 
-- 依赖 PRD-04 建成的知识库和 PRD-02/消息入口定义的摘要契约。
-- 需确认严格 IP 精确过滤是否会漏掉不同主机上的同类案例；定义无匹配时的过滤放宽策略。
-- 定义 `target_ip` 缺失、地址规范化、多 IP 日志及访问权限过滤行为。
-- 固定 Top-5 命中率的标注规则、测试集和统计口径。
+- Depends on the knowledge base built by PRD-04 and on the summary contract defined by PRD-02 and the message ingress.
+- Confirm whether strict exact IP filtering drops similar cases on other hosts. Define the filter-relaxation policy when there is no match.
+- Define behavior for a missing `target_ip`, address normalization, multi-IP logs, and access-control filtering.
+- Fix the labeling rules, test set, and statistics for the Top-5 hit rate.

@@ -1,29 +1,29 @@
-# PRD-06：云端 RAG 根因分析
+# PRD-06: Cloud RAG root-cause analysis
 
-**原需求：** C-03
+**Original requirement:** C-03
 
-**服务：** [RAG](../services/cloud/rag.md)
+**Service:** [RAG](../services/cloud/rag.md)
 
-## 目标
+## Goal
 
-将边缘摘要与检索案例作为上下文，生成有依据的根因分析和可执行修复建议。
+Use the edge summary and retrieved cases as context, and produce a grounded root-cause analysis and actionable remediation suggestions.
 
-## 范围
+## Scope
 
-- 编排 PRD-05 检索结果与边缘摘要。
-- Prompt 必须包含 `<edge_summary>`、`<retrieved_cases>`、`<analysis_instructions>` 三个区段。
-- 调用云端大模型并返回根因分析与修复建议。
+- Orchestrate the PRD-05 retrieval results with the edge summary.
+- The prompt must contain the sections `<edge_summary>`, `<retrieved_cases>`, and `<analysis_instructions>`.
+- Call a cloud large model and return root-cause analysis and remediation suggestions.
 
-## 验收标准
+## Acceptance criteria
 
-- 从请求进入分析服务到完整响应的时间低于 10 秒；测试负载和超时统计口径需记录。
-- 在双方确认的评审集上，建议可执行性平均评分不低于 4/5。
-- 输出能够区分检索证据与模型推断；无足够证据时明确说明不确定性，不得将推断表述为已证实事实。
-- 检索案例、输入摘要和最终输出可按请求关联，便于复核和评测。
+- The time from request entry into the analysis service to a complete response is under 10 seconds. The test load and the timeout statistic are recorded.
+- On a review set agreed by both sides, the average actionability score is at least 4/5.
+- The output can separate retrieved evidence from model inference. When evidence is insufficient, uncertainty is stated. Inference is not presented as a confirmed fact.
+- Retrieved cases, the input summary, and the final output can be correlated by request, so they can be reviewed and evaluated.
 
-## 依赖与待决策
+## Dependencies and open decisions
 
-- 依赖 PRD-05 的混合检索结果。
-- 技术方案候选：LlamaIndex 或 LangChain；模型候选：自托管 Qwen2.5-72B-Instruct（vLLM）或 Claude API。需根据数据合规、延迟、成本和可用性选型。
-- 定义提示注入防护、敏感数据处理、模型不可用时的错误响应和人工升级路径。
-- 固定可执行性评分标准、评审人数和评测样本。
+- Depends on the hybrid retrieval results from PRD-05.
+- Technical-design candidates: LlamaIndex or LangChain. Model candidates: self-hosted Qwen2.5-72B-Instruct on vLLM, or the Claude API. Choose based on data compliance, latency, cost, and availability.
+- Define prompt-injection protection, sensitive-data handling, the error response when the model is unavailable, and the path for human escalation.
+- Fix the actionability rubric, the number of reviewers, and the evaluation sample.

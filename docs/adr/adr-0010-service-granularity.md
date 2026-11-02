@@ -1,52 +1,52 @@
-# ADR-0010：按服务粒度管理代码与文档
+# ADR-0010: Manage code and docs at service granularity
 
-- 状态：已采纳
-- 日期：2026-11-02
-- 关联 PRD：PRD-01、PRD-02、PRD-03、PRD-04、PRD-05、PRD-06、PRD-07
-- 代码：[服务目录](../services/README.md)
+- Status: Accepted
+- Date: 2026-11-02
+- Related PRDs: PRD-01, PRD-02, PRD-03, PRD-04, PRD-05, PRD-06, PRD-07
+- Code: [service catalog](../services/README.md)
 
-## 背景
+## Context
 
-边缘和云端各自包含多个服务。若把同一侧的实现放在一个包里，服务边界只存在于文档和进程名中，修改一个服务会直接碰到其他服务的模块。文档若继续按整侧重写，也会和代码边界脱节。
+The edge and the cloud each contain several services. If every implementation on one side lives in a single package, the service boundary exists only in documents and process names, and a change to one service touches the modules of the others. Documents written for a whole side also drift away from the code boundary.
 
-ADR-0001 划分了边缘与云端的职责，但没有规定每个服务的代码和文档必须单独放置。
+ADR-0001 splits responsibilities between edge and cloud. It does not require each service to have its own code and its own document.
 
-## 决策
+## Decision
 
-- 代码按服务分包。一个服务的实现只放在自己的包里，不把多个服务的模块放进同一个包。
-- 文档使用同一粒度。每个服务在 `docs/services/` 下有一份说明，路径与代码包对应。PRD 和 ADR 标明所属服务。系统级 README 只保留跨服务视图，并链接到服务说明，不在其中重写各服务内部规则。
-- 需求文档和技术方案保留为原始输入，不按代码包重排。
-- 进程入口只负责组装。edge agent 调用过滤、摘要和传输；cloud agent 调用检索、RAG 和反馈观察。入口包不承接这些服务的实现。
-- 知识入库和反馈审核是独立进程，同时仍各自拥有独立的代码包和文档。
-- 跨服务契约放在 `shared`。`shared` 不包含服务逻辑，也不依赖任何服务。
-- 依赖指向产出类型的服务。例如 RAG 使用检索定义的 `RetrievedCase`，检索不依赖 RAG。
-- 新增、合并或拆分服务时，同时调整代码包、服务说明，以及 PRD、ADR 上的服务归属。只改其中一处不算完成。
+- Package code by service. A service's implementation lives only in its own package. Modules of several services are not placed in one package.
+- Use the same granularity for documents. Each service has one note under `docs/services/`, and the path matches the code package. PRDs and ADRs name the owning service. The system README keeps only the cross-service view and links to the service notes. It does not restate the internal rules of each service.
+- The requirements document and the technical design stay as the original inputs. They are not rearranged to match code packages.
+- Process entry points only assemble. The edge agent calls filtering, summarization, and transport. The cloud agent calls retrieval, RAG, and feedback observation. The entry package does not contain those service implementations.
+- Knowledge ingestion and feedback review are separate processes, and each still has its own code package and document.
+- Cross-service contracts live in `shared`. `shared` contains no service logic and does not depend on any service.
+- A dependency points at the service that defines the produced type. For example, RAG uses `RetrievedCase` defined by retrieval, and retrieval does not depend on RAG.
+- When a service is added, merged, or split, update the code package, the service note, and the service ownership on the PRDs and ADRs together. Changing only one of those is not done.
 
-当前服务划分：
+Current service split:
 
-| 侧 | 服务 | 代码包 |
+| Side | Service | Code package |
 |---|---|---|
-| 边缘 | 过滤 | `services/edge/filtering` |
-| 边缘 | 摘要 | `services/edge/summarization` |
-| 边缘 | 传输 | `services/edge/transport` |
-| 边缘 | edge agent | `services/edge/agent` |
-| 云端 | 知识入库 | `services/cloud/knowledge` |
-| 云端 | 检索 | `services/cloud/retrieval` |
-| 云端 | RAG | `services/cloud/rag` |
-| 云端 | 反馈 | `services/cloud/feedback` |
-| 云端 | cloud agent | `services/cloud/agent` |
-| 共享 | 契约 | `shared` |
+| Edge | Filtering | `services/edge/filtering` |
+| Edge | Summarization | `services/edge/summarization` |
+| Edge | Transport | `services/edge/transport` |
+| Edge | edge agent | `services/edge/agent` |
+| Cloud | Knowledge ingestion | `services/cloud/knowledge` |
+| Cloud | Retrieval | `services/cloud/retrieval` |
+| Cloud | RAG | `services/cloud/rag` |
+| Cloud | Feedback | `services/cloud/feedback` |
+| Cloud | cloud agent | `services/cloud/agent` |
+| Shared | Contract | `shared` |
 
-Fluent Bit 只负责采集，配置留在 `deploy/fluent-bit`，不并入过滤服务的代码包。
+Fluent Bit only collects logs. Its configuration stays in `deploy/fluent-bit` and is not merged into the filtering service package.
 
-## 影响
+## Consequences
 
-- 服务可以独立阅读、测试和变更。组装进程的变化不应把其他服务的代码搬回同一个包。
-- 服务说明是该服务行为的正文；PRD 保留验收标准，ADR 保留选型和约束。
-- 改变上表中的服务边界时，更新本 ADR 的日期、服务表和受影响的服务说明。
+- A service can be read, tested, and changed on its own. A change to an assembly process should not move another service's code back into the same package.
+- The service note is the body of that service's behavior. A PRD keeps acceptance criteria. An ADR keeps the choice and the constraint.
+- When a service boundary in the table above changes, update this ADR's date, the service table, and the affected service notes.
 
-## 替代方案
+## Alternatives
 
-- 只按边缘、云端两个包管理代码：同一侧的多个服务仍然混在一起，不采用。
-- 只按操作系统进程分包：检索会被知识入库和 cloud agent 同时依赖，过滤、摘要和传输也会重新堆进 edge agent，不采用。
-- 每个服务单独建仓库：当前仓库规模下增加发布和契约同步成本，不采用。
+- Manage code in only two packages, edge and cloud. Several services on the same side would still be mixed together. Rejected.
+- Package only by operating-system process. Retrieval would be depended on by both knowledge ingestion and the cloud agent, and filtering, summarization, and transport would be piled back into the edge agent. Rejected.
+- One repository per service. At the current repository size, that adds release and contract-sync cost. Rejected.

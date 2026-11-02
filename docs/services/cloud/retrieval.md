@@ -1,20 +1,20 @@
-# 检索
+# Retrieval
 
-代码：[`services/cloud/retrieval`](../../../src/edge_semantic_compress_intelligence/services/cloud/retrieval)
+Code: [`services/cloud/retrieval`](../../../src/edge_semantic_compress_intelligence/services/cloud/retrieval)
 
-关联：[PRD-05](../../prds/prd-05-hybrid-retrieval.md)、[ADR-0006](../../adr/adr-0006-hybrid-retrieval.md)
+Related: [PRD-05](../../prds/prd-05-hybrid-retrieval.md), [ADR-0006](../../adr/adr-0006-hybrid-retrieval.md)
 
-## 职责
+## Responsibilities
 
-提供混合检索和向量库适配。本服务没有独立进程。[知识入库](knowledge.md)用它写入，[cloud agent](agent.md)用它按事件检索。
+Provide hybrid retrieval and the vector-store adapter. This service has no process of its own. [Knowledge ingestion](knowledge.md) uses it to write vectors. The [cloud agent](agent.md) uses it to retrieve by event.
 
-检索结果类型 `RetrievedCase` 定义在这里。[RAG](rag.md)依赖该类型，检索不依赖 RAG。
+The retrieval result type `RetrievedCase` is defined here. [RAG](rag.md) depends on that type. Retrieval does not depend on RAG.
 
-在线检索规则：
+Online retrieval rules:
 
-- 同时使用 `target_ip` 精确过滤和 `summary` 向量相似度。
-- `top_k` 固定为 5。
-- 缺少 `target_ip`，或没有精确 IP 匹配时，返回空案例集，不退化为纯向量搜索。
-- 向量库返回之后再次比对 IP，避免索引配置错误造成跨主机召回。
+- Use an exact `target_ip` filter and vector similarity on `summary` together.
+- `top_k` is fixed at 5.
+- When `target_ip` is missing, or there is no exact IP match, return an empty case set. Do not fall back to vector-only search.
+- Compare the IP again after the vector store returns results, so a misconfigured index cannot recall cases from another host.
 
-Milvus 集合适配、bge-m3 HTTP 客户端和确定性 mock embedder 都属于检索服务。
+The Milvus collection adapter, the bge-m3 HTTP client, and the deterministic mock embedder all belong to the retrieval service.

@@ -1,77 +1,77 @@
-当前实现按服务写在 [服务目录](services/README.md)。下文是原始技术方案，保留当时的架构图和选型，不按代码包重排。
+The current implementation is written per service in the [service catalog](services/README.md). The rest of this page is the original technical design. It keeps the architecture diagrams and technology choices from that time and is not rearranged to match code packages.
 
-以下是整合了完整内容、架构图与流程图的最终版文档。您可以直接复制保存为两个独立的 .md 文件，作为 Coding Agent 的标准化输入上下文。
+The following is the final document, with the full content, architecture diagrams, and flowcharts combined. You can copy it into two separate `.md` files and use them as the standard input context for a coding agent.
 
-📄 边缘日志智能压缩与云端RAG系统需求文档.md
+📄 requirements.md for the edge log compression and cloud RAG system
 
-边缘日志智能压缩与云端RAG系统需求文档
+Requirements: edge log compression and cloud RAG
 
-项目背景
-构建一套“边缘结构化压缩 + 云端解耦 RAG”的 AIOps 日志分析系统。边缘侧负责日志预过滤与 SLM 结构化提炼，云端负责高精度向量检索与根因推理，实现低带宽、低延迟、高精度的故障诊断闭环。
+Background
+Build an AIOps log analysis system that combines structured compression on the edge with a decoupled RAG pipeline in the cloud. The edge pre-filters logs and distills them with an SLM. The cloud runs high-precision vector retrieval and root-cause reasoning. The result is a fault-diagnosis loop with low bandwidth, low latency, and high precision.
 
-核心功能需求
+Functional requirements
 
-2.1 边缘侧
-ID   功能模块   描述   验收标准
-E-01   日志采集   支持从指定文件路径/Syslog 采集原始日志   不丢日志，支持断点续传
+2.1 Edge
+ID   Module   Description   Acceptance criteria
+E-01   Log collection   Collect raw logs from a configured file path or syslog   No log loss; resume from the last checkpoint
 
-E-02   规则预过滤   L1格式校验、L2状态码过滤、L3关键字黑名单、L4频率抑制   纯规则执行，零AI开销；无效日志拦截率≥90%
+E-02   Rule pre-filter   L1 format check, L2 status-code filter, L3 keyword denylist, L4 rate suppression   Rules only, with no AI cost; at least 90% of invalid logs are blocked
 
-E-03   SLM结构化提炼   将过滤后日志批量发送给本地SLM，输出符合JSON Schema的结构化摘要   JSON合法率100%；单批处理延迟<2s
+E-03   SLM structured distillation   Send filtered log batches to a local SLM and emit a structured summary that matches a JSON Schema   100% valid JSON; per-batch latency under 2s
 
-E-04   实体校验兜底   对SLM输出进行IP/端口/错误码正则校验，缺失时自动补全   关键实体字段完整率≥99%
+E-04   Entity validation fallback   Validate IP, port, and error code in the SLM output with regular expressions, and fill missing values   At least 99% of critical entity fields are complete
 
-E-05   安全传输   通过MQTT/Kafka将结构化JSON加密传输至云端   支持mTLS认证；弱网下本地磁盘缓冲不丢数据
+E-05   Secure transport   Encrypt the structured JSON and send it to the cloud over MQTT or Kafka   mTLS authentication; local disk buffering with no data loss on a weak network
 
-2.2 云端侧
-ID   功能模块   描述   验收标准
-C-01   知识入库管道   定期清洗运维文档/历史工单，用云端Embedding模型向量化入库   支持增量更新；文档解析准确率≥95%
+2.2 Cloud
+ID   Module   Description   Acceptance criteria
+C-01   Knowledge ingestion pipeline   Periodically clean operations documents and historical tickets, embed them with a cloud embedding model, and store the vectors   Incremental updates; document parsing accuracy of at least 95%
 
-C-02   混合检索   基于边缘JSON中的target_ip做精确过滤 + summary做向量相似度搜索   Top-5召回相关案例命中率≥85%
+C-02   Hybrid retrieval   Exact filter on `target_ip` from the edge JSON, plus vector similarity search on `summary`   Top-5 recall of relevant cases of at least 85%
 
-C-03   RAG推理   将召回案例+边缘摘要组装Prompt，调用大模型生成根因分析与修复建议   响应时间<10s；建议可执行性评分≥4/5
+C-03   RAG reasoning   Assemble retrieved cases and the edge summary into a prompt, then call a large model for root-cause analysis and remediation suggestions   Response time under 10s; actionability score of at least 4/5
 
-C-04   反馈闭环   标记边缘摘要缺失案例，自动生成Prompt优化建议回流边缘   每周产出≥3条有效Prompt迭代建议
+C-04   Feedback loop   Mark cases where the edge summary is insufficient, and generate prompt-optimization suggestions that flow back to the edge   At least 3 valid prompt-iteration suggestions per week
 
-非功能性需求
-边缘资源约束：预过滤引擎内存 < 50MB；SLM显存占用 < 2GB；整机功耗 < 30W。
-确定性输出：边缘SLM必须启用 JSON Schema / Grammar 强制约束，禁止自由文本生成。
-解耦原则：边缘侧不部署任何 Embedding 模型；云端不依赖边缘侧模型版本。
-可观测性：边缘预过滤引擎自身CPU/内存/吞吐量需暴露 Prometheus 指标。
+Non-functional requirements
+Edge resource limits: pre-filter engine memory under 50 MB; SLM video memory under 2 GB; whole-device power under 30 W.
+Deterministic output: the edge SLM must be constrained by a JSON Schema or grammar. Free-text generation is not allowed.
+Decoupling: the edge does not run any embedding model. The cloud does not depend on the edge model version.
+Observability: the edge pre-filter exposes its own CPU, memory, and throughput as Prometheus metrics.
 
-术语表
-Vector：指 Datadog 开源的数据管道工具，非向量数据库或嵌入模型。
-SLM：Small Language Model，参数量≤3B的边缘专用小模型。
-VRL：Vector Remap Language，Vector 的声明式转换语言。
-RAG：Retrieval-Augmented Generation，检索增强生成。
+Glossary
+Vector: the open-source data pipeline from Datadog. In this document it is not a vector database or an embedding model.
+SLM: Small Language Model, an edge model with at most 3B parameters.
+VRL: Vector Remap Language, the declarative transform language used by Vector.
+RAG: Retrieval-Augmented Generation.
 
-🛠️ 边缘日志智能压缩与云端RAG系统技术设计方案.md
+🛠️ technical-design.md for the edge log compression and cloud RAG system
 
-边缘日志智能压缩与云端RAG系统技术设计方案
+Technical design: edge log compression and cloud RAG
 
-架构总览
+Architecture overview
 
-1.1 系统架构图
+1.1 System architecture
 mermaid
 graph TB
-    subgraph Edge["🏭 边缘侧 (资源受限)"]
-        A[原始日志源文件/Syslog] --> B[预过滤引擎Fluent Bit / Vector]
-        B -->|高价值日志批次| C[SLM推理服务llama.cpp + JSON Schema]
-        C --> D[实体校验兜底正则补全]
-        D --> E[安全传输层MQTT/Kafka + mTLS]
+    subgraph Edge["🏭 Edge (resource constrained)"]
+        A[Raw logs: files or syslog] --> B[Pre-filter: Fluent Bit / Vector]
+        B -->|High-value log batches| C[SLM inference: llama.cpp + JSON Schema]
+        C --> D[Entity validation fallback: regex backfill]
+        D --> E[Secure transport: MQTT/Kafka + mTLS]
 
         style B fill:#e1f5fe,stroke:#0288d1
         style C fill:#fff3e0,stroke:#f57c00
         style D fill:#f3e5f5,stroke:#7b1fa2
     end
 
-    subgraph Cloud["☁️ 云端侧 (高精度推理)"]
-        F[知识入库管道Unstructured + bge-m3] --> G[(向量数据库Milvus / ES)]
-        E -->|结构化JSON| H[RAG编排引擎LlamaIndex]
-        G -->|混合检索结果| H
-        H --> I[根因推理LLMQwen2.5-72B / Claude]
-        I --> J[根因分析报告]
-        J -.->|Prompt优化建议| B
+    subgraph Cloud["☁️ Cloud (high-precision reasoning)"]
+        F[Knowledge ingestion: Unstructured + bge-m3] --> G[(Vector store: Milvus / ES)]
+        E -->|Structured JSON| H[RAG orchestration: LlamaIndex]
+        G -->|Hybrid retrieval results| H
+        H --> I[Root-cause LLM: Qwen2.5-72B / Claude]
+        I --> J[Root-cause analysis report]
+        J -.->|Prompt optimization suggestions| B
 
         style G fill:#e8f5e9,stroke:#388e3c
         style H fill:#fce4ec,stroke:#c2185b
@@ -80,31 +80,31 @@ graph TB
 
     linkStyle default stroke:#546e7a,stroke-width:2px
 
-1.2 数据处理流程图
+1.2 Data-processing flow
 mermaid
 flowchart LR
-    A[原始日志] --> B{L1: 格式校验}
-    B -->|非法格式| X1[丢弃+计数]
-    B -->|合法| C{L2: 状态码过滤}
+    A[Raw logs] --> B{L1: format check}
+    B -->|Invalid format| X1[Drop and count]
+    B -->|Valid| C{L2: status-code filter}
 
-    C -->|200/OK| X2[丢弃+计数]
-    C -->|非成功| D{L3: 关键字黑名单}
+    C -->|200/OK| X2[Drop and count]
+    C -->|Not success| D{L3: keyword denylist}
 
-    D -->|心跳/健康检查| X3[丢弃+计数]
-    D -->|业务日志| E{L4: 频率抑制}
+    D -->|Heartbeat or health check| X3[Drop and count]
+    D -->|Business log| E{L4: rate suppression}
 
-    E -->|重复超阈值| X4[仅保留首尾]
-    E -->|正常频次| F[批量聚合max=10KB/1s]
+    E -->|Repeats over threshold| X4[Keep first and last only]
+    E -->|Normal rate| F[Batch aggregation max=10KB/1s]
 
-    F --> G[SLM结构化提炼JSON Schema强制]
-    G --> H{实体完整性校验}
+    F --> G[SLM structured distillation, JSON Schema enforced]
+    G --> H{Entity completeness check}
 
-    H -->|缺失关键字段| I[正则回补原始日志]
-    H -->|完整| J[MessagePack序列化]
+    H -->|Critical field missing| I[Regex backfill from the raw log]
+    H -->|Complete| J[MessagePack serialization]
     I --> J
 
-    J --> K[mTLS加密传输]
-    K --> L[云端RAG Pipeline]
+    J --> K[mTLS encrypted transport]
+    K --> L[Cloud RAG pipeline]
 
     style X1 fill:#ffcdd2,stroke:#c62828
     style X2 fill:#ffcdd2,stroke:#c62828
@@ -113,75 +113,75 @@ flowchart LR
     style G fill:#e3f2fd,stroke:#1565c0
     style L fill:#e8f5e9,stroke:#2e7d32
 
-边缘侧技术选型与配置
+Edge technology choices and configuration
 
-2.1 预过滤引擎（默认推荐 Fluent Bit）
-选型理由：C语言编写，内存占用5-10MB，ARM生态成熟，断网缓存可靠。
-备选方案：若设备为Jetson/RK3588且规则复杂，可选用 Vector（Rust，VRL表达力强）。
-关键配置要求：
-    启用 storage.type filesystem 磁盘缓冲
-    输出批次大小 batch.max_size=10KB，flush间隔=1s
-    仅使用 filter/grep/throttle 插件，禁止加载任何AI插件
+2.1 Pre-filter engine (Fluent Bit recommended by default)
+Why: written in C, 5–10 MB of memory, a mature ARM ecosystem, and reliable offline buffering.
+Alternative: on a Jetson or RK3588 with complex rules, Vector (Rust, strong VRL) is an option.
+Configuration requirements:
+    Enable `storage.type filesystem` disk buffering
+    Output batch size `batch.max_size=10KB`, flush interval = 1s
+    Use only filter, grep, and throttle plugins. Do not load any AI plugin
 
-2.2 SLM推理服务
-基座模型：Qwen2.5-1.5B-Instruct-AWQ 或 Llama-3.2-3B-Q4_K_M
-推理框架：llama.cpp server 模式
-启动参数强制要求：
+2.2 SLM inference service
+Base model: Qwen2.5-1.5B-Instruct-AWQ or Llama-3.2-3B-Q4_K_M
+Inference framework: llama.cpp in server mode
+Required startup arguments:
     bash
     --json-schema '{"type":"object","properties":{"timestamp":{"type":"string"},"service":{"type":"string"},"target_ip":{"type":"string"},"error_code":{"type":"string"},"summary":{"type":"string"}},"required":["timestamp","service","summary"]}'
     --ctx-size 2048 --threads 4 --gpu-layers 99
-    API接口：POST /v1/chat/completions，请求体中必须包含 response_format: {"type": "json_object"}
+    API: `POST /v1/chat/completions`. The request body must include `response_format: {"type": "json_object"}`
 
-2.3 实体校验兜底脚本
-语言：Python 3.10+ 或 Lua（嵌入Fluent Bit）
-逻辑：正则提取 (d{1,3}.){3}d{1,3} (IP)、bd{4,5}b (端口)、ERR-d+ (错误码)；缺失字段从原始日志回补。
+2.3 Entity-validation fallback script
+Language: Python 3.10+ or Lua embedded in Fluent Bit
+Logic: extract `(d{1,3}.){3}d{1,3}` (IP), `bd{4,5}b` (port), and `ERR-d+` (error code) with regular expressions. Backfill a missing field from the raw log.
 
-云端侧技术选型与配置
+Cloud technology choices and configuration
 
-3.1 知识入库
-文档解析：Unstructured / MarkItDown
-Embedding模型：bge-m3（1024维，支持中英文+稠密/稀疏双检索）
-向量数据库：Milvus 2.x 或 Elasticsearch 8.x+（根据现有基础设施选择）
+3.1 Knowledge ingestion
+Document parsing: Unstructured / MarkItDown
+Embedding model: bge-m3 (1024 dimensions; Chinese and English; dense and sparse retrieval)
+Vector database: Milvus 2.x or Elasticsearch 8.x or newer, chosen from the existing infrastructure
 
-3.2 RAG Pipeline
-编排框架：LlamaIndex（推荐）或 LangChain
-检索策略：Hybrid Search = Metadata Filter (target_ip==xxx) + Vector Similarity (summary, top_k=5)
-推理模型：Qwen2.5-72B-Instruct（vLLM部署）或 Claude-3.5-Sonnet API
-Prompt模板：必须包含 <edge_summary>、<retrieved_cases>、<analysis_instructions> 三段式结构
+3.2 RAG pipeline
+Orchestration framework: LlamaIndex (recommended) or LangChain
+Retrieval strategy: hybrid search = metadata filter (`target_ip==xxx`) + vector similarity (`summary`, `top_k=5`)
+Inference model: Qwen2.5-72B-Instruct (deployed with vLLM) or the Claude 3.5 Sonnet API
+Prompt template: must contain the three sections `<edge_summary>`, `<retrieved_cases>`, and `<analysis_instructions>`
 
-通信协议
-传输协议：MQTT v5（弱网优先）或 Kafka（高吞吐优先）
-序列化：MessagePack（比JSON体积小30%，解析快5倍）
-安全：mTLS双向证书认证 + Topic级别ACL
+Communication protocol
+Transport protocol: MQTT v5 (preferred on a weak network) or Kafka (preferred for high throughput)
+Serialization: MessagePack (about 30% smaller than JSON, and about 5 times faster to parse)
+Security: mutual TLS plus topic-level ACLs
 
-实施阶段划分
-阶段   周期   交付物   验证方式
-Phase 1   2周   预过滤+云端RAG链路（SLM用规则模拟）   云端RAG召回准确率≥80%
+Implementation phases
+Phase   Duration   Deliverable   Verification
+Phase 1   2 weeks   Pre-filter plus the cloud RAG path (the SLM is simulated with rules)   Cloud RAG recall accuracy of at least 80%
 
-Phase 2   3周   边缘SLM上线+实体校验   JSON合法率100%，摘要质量人工评估达标
+Phase 2   3 weeks   Edge SLM online, plus entity validation   100% valid JSON; summary quality passes human review
 
-Phase 3   持续   反馈闭环+Prompt自动迭代   每月摘要信息完整度提升≥5%
+Phase 3   Ongoing   Feedback loop and automatic prompt iteration   Summary-information completeness improves by at least 5% per month
 
-Coding Agent 执行指令
-⚠️ 给 Agent 的关键提示
-实现预过滤时，绝对不要引入 sentence-transformers、openai-embeddings 等任何嵌入模型库。
-llama.cpp 服务启动命令必须包含 --json-schema 参数，不可省略。
-云端 RAG 检索必须同时使用 metadata filter 和 vector search，不可仅用 vector search。
-所有配置文件需提供注释，说明每层过滤的预期拦截率和工程目的。
-优先实现 Fluent Bit 方案；仅在用户明确指定时切换为 Vector。
-生成的代码需与本文档中的架构图和流程图保持一致，不得自行增删核心节点。
-图表是强制性设计约束，不是示意图；若发现图文冲突，以本文档文字描述为准并立即报告。
+Coding agent instructions
+⚠️ Key notes for the agent
+When implementing the pre-filter, do not import any embedding library such as sentence-transformers or openai-embeddings.
+The llama.cpp startup command must include `--json-schema`. Do not omit it.
+Cloud RAG retrieval must use both the metadata filter and vector search. Vector search alone is not enough.
+Every configuration file needs comments that state the expected block rate and the engineering purpose of each filter layer.
+Implement the Fluent Bit option first. Switch to Vector only when the user explicitly asks for it.
+Generated code must stay consistent with the architecture diagram and the flowchart in this document. Do not add or remove core nodes on your own.
+The diagrams are mandatory design constraints, not illustrations. If the diagram and the text conflict, follow the written description in this document and report the conflict immediately.
 
-💡 交付与使用清单
-步骤   操作   目的
-1   将第一个代码块保存为 requirements.md   定义业务边界与非功能性约束
+💡 Delivery and usage checklist
+Step   Action   Purpose
+1   Save the first block as requirements.md   Define the business boundary and non-functional constraints
 
-2   将第二个代码块保存为 technical-design.md   提供含图表的完整技术施工图纸
+2   Save the second block as technical-design.md   Provide the full technical blueprint, including diagrams
 
-3   在 Coding Agent 中先上传 requirements.md   建立全局上下文，防止过度设计
+3   Upload requirements.md to the coding agent first   Establish global context and avoid over-design
 
-4   再上传 technical-design.md 并下达任务   按 Phase 分阶段触发实现
+4   Then upload technical-design.md and assign the task   Trigger implementation phase by phase
 
-5   每阶段完成后人工验收图表一致性   确保 Agent 未偏离架构设计
+5   After each phase, manually check consistency with the diagrams   Confirm the agent has not drifted from the architecture
 
-备注：两份文档已包含此前讨论的所有要点（Fluent Bit vs Vector 选型结论、四层预过滤逻辑、SLM JSON Schema 强制约束、云端混合检索策略、反馈闭环机制），无需额外补充历史对话内容。
+Note: both documents already include every point discussed earlier (the Fluent Bit versus Vector conclusion, the four pre-filter layers, the forced SLM JSON Schema, the cloud hybrid-retrieval strategy, and the feedback loop). No extra history needs to be attached.

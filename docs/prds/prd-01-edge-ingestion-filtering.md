@@ -1,35 +1,35 @@
-# PRD-01：边缘日志采集与规则预过滤
+# PRD-01: Edge log collection and rule pre-filtering
 
-**原需求：** E-01、E-02
+**Original requirements:** E-01, E-02
 
-**服务：** [过滤](../services/edge/filtering.md)。采集配置在 `deploy/fluent-bit`，规则过滤在 `services/edge/filtering`。
+**Service:** [Filtering](../services/edge/filtering.md). Collection configuration is in `deploy/fluent-bit`. Rule filtering is in `services/edge/filtering`.
 
-## 目标
+## Goal
 
-在资源受限的边缘设备上可靠采集指定来源的日志，并用确定性规则剔除低价值日志，为后续结构化提炼保留高价值输入。
+Reliably collect logs from configured sources on a resource-constrained edge device, and use deterministic rules to drop low-value logs so later structured distillation keeps high-value input.
 
-## 用户与场景
+## Users and scenarios
 
-边缘设备运维人员配置日志文件路径或 Syslog 来源；系统持续采集日志，在重启或短暂故障后从已记录位置恢复处理。
+An edge operator configures a log file path or a syslog source. The system collects logs continuously and resumes from the recorded position after a restart or a short failure.
 
-## 范围
+## Scope
 
-- 支持指定文件路径和 Syslog。
-- 支持断点续传及采集状态持久化。
-- 按顺序执行四层规则：L1 格式校验、L2 状态码过滤、L3 关键字黑名单、L4 频率抑制。
-- 规则层不调用 AI，也不加载 Embedding 模型。
-- 暴露预过滤引擎 CPU、内存、吞吐量及过滤计数指标。
+- Support a configured file path and syslog.
+- Support resume from a checkpoint and persistence of collection state.
+- Run four rule layers in order: L1 format check, L2 status-code filter, L3 keyword denylist, and L4 rate suppression.
+- The rule layer does not call AI and does not load an embedding model.
+- Expose CPU, memory, throughput, and filter-count metrics for the pre-filter engine.
 
-## 验收标准
+## Acceptance criteria
 
-- 文件与 Syslog 来源均可采集；重启后可从已保存位置继续处理。
-- 在预先约定的故障注入和存储容量范围内，采集日志无丢失、无重复处理；超出范围时的行为需明确记录。
-- L1 至 L4 规则均可独立配置和测试；过滤原因可计数。
-- 在双方确认的标注测试集上，无效日志拦截率不低于 90%。
-- 预过滤引擎内存占用低于 50 MB；Prometheus 指标可抓取。
+- Both file and syslog sources can be collected. After a restart, processing continues from the saved position.
+- Within the agreed fault-injection and storage-capacity range, collected logs are neither lost nor processed twice. Behavior outside that range is recorded explicitly.
+- L1 through L4 can each be configured and tested on their own. Drop reasons are countable.
+- On a labeled test set agreed by both sides, at least 90% of invalid logs are blocked.
+- Pre-filter engine memory stays under 50 MB. Prometheus metrics can be scraped.
 
-## 依赖与待决策
+## Dependencies and open decisions
 
-- 技术方案默认 Fluent Bit；只有用户明确指定时才切换 Vector。
-- 定义日志格式、状态码识别规则、黑名单维护方式、频率窗口和“仅保留首尾”的具体行为。
-- 约定文件轮转、Syslog 断连、磁盘耗尽和配置热更新策略。
+- The technical design defaults to Fluent Bit. Switch to Vector only when the user explicitly asks for it.
+- Define the log format, status-code recognition, how the denylist is maintained, the rate window, and the exact behavior of keeping only the first and last occurrence.
+- Agree on file rotation, syslog disconnects, disk exhaustion, and configuration hot-reload.

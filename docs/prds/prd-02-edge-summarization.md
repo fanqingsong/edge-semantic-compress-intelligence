@@ -1,38 +1,38 @@
-# PRD-02：边缘 SLM 结构化提炼与实体校验
+# PRD-02: Edge SLM structured distillation and entity validation
 
-**原需求：** E-03、E-04
+**Original requirements:** E-03, E-04
 
-**服务：** [摘要](../services/edge/summarization.md)
+**Service:** [Summarization](../services/edge/summarization.md)
 
-## 目标
+## Goal
 
-将规则过滤后的日志批量提炼为稳定、体积更小的结构化摘要，并在发送前校验关键实体。
+Distill rule-filtered logs, in batches, into a stable and smaller structured summary, and validate critical entities before sending.
 
-## 范围
+## Scope
 
-- 调用本地参数量不超过 3B 的 SLM 对日志批次生成摘要。
-- 通过 llama.cpp server `--json-schema` 强制结构化输出，调用 `/v1/chat/completions` 并请求 JSON object 格式。
-- 校验 IP、端口、错误码等实体；缺失时仅从原始日志正则提取并补全。
-- 将经过校验的结构化记录交给安全传输模块。
-- 不在边缘侧部署 Embedding 模型。
+- Call a local SLM of at most 3B parameters to summarize a log batch.
+- Force structured output through llama.cpp server `--json-schema`. Call `/v1/chat/completions` and request JSON object format.
+- Validate entities such as IP, port, and error code. When one is missing, extract it from the raw log with a regular expression and fill it in.
+- Hand the validated structured record to the secure transport module.
+- Do not deploy an embedding model on the edge.
 
-## 数据契约
+## Data contract
 
-MVP 使用 [ADR-0009 定义的事件 Schema v1.0](../adr/adr-0009-edge-event-contract.md)：`event_id`、带时区的 `timestamp`、`service` 和 `summary` 必填；`target_ip`、`target_port`、`error_code` 可缺省或为空。事件不包含原始日志，未知字段拒绝接收。实体只能由 SLM 提取或从原始日志回补，不得臆造；端口必须为 1–65535 的整数。
+The MVP uses [event schema v1.0 defined in ADR-0009](../adr/adr-0009-edge-event-contract.md). `event_id`, a timezone-aware `timestamp`, `service`, and `summary` are required. `target_ip`, `target_port`, and `error_code` may be omitted or empty. An event does not contain the raw log. Unknown fields are rejected. An entity may come only from the SLM or from backfill against the raw log. It must not be invented. A port must be an integer from 1 to 65535.
 
-该契约是首版实现约定；若业务确认需要额外字段或原文传输，需先更新 ADR 和 Schema 版本策略。
+This contract is the agreement for the first implementation. If the business confirms that extra fields or raw-log transport are required, update the ADR and the schema version policy first.
 
-## 验收标准
+## Acceptance criteria
 
-- 所有成功输出均符合版本化 JSON Schema，JSON 合法率 100%。
-- 单批处理延迟低于 2 秒；测试批次大小和目标硬件需固定并记录。
-- 在确认的实体标注测试集上，关键实体字段完整率不低于 99%。
-- 无法从原始日志回补的字段按约定标记缺失，不得伪造。
-- 目标设备上 SLM 显存占用低于 2 GB，整机功耗低于 30 W。
+- Every successful output matches the versioned JSON Schema. JSON validity is 100%.
+- Per-batch latency is under 2 seconds. The test batch size and the target hardware are fixed and recorded.
+- On the agreed entity-labeled test set, at least 99% of critical entity fields are complete.
+- A field that cannot be backfilled from the raw log is marked missing by the agreed rule. It is not fabricated.
+- On the target device, SLM video memory stays under 2 GB and whole-device power stays under 30 W.
 
-## 依赖与待决策
+## Dependencies and open decisions
 
-- 依赖 PRD-01 输出的日志批次及原始日志引用。
-- 技术方案要求 llama.cpp server 和 `--json-schema`；需在选定版本与目标硬件上验证约束能力。
-- 在 AWQ 与 GGUF 候选模型中确定兼容运行时的模型格式；明确超时、模型不可用和 Schema 校验失败时的重试或降级策略。
-- 修正并测试 IP、端口和错误码正则表达式，明确 IPv6 是否属于本期范围。
+- Depends on the log batches and raw-log references produced by PRD-01.
+- The technical design requires llama.cpp server and `--json-schema`. The constraint must be verified on the selected version and the target hardware.
+- Choose a model format compatible with the runtime from the AWQ and GGUF candidates. Define retry or fallback behavior for timeout, model unavailability, and schema validation failure.
+- Correct and test the regular expressions for IP, port, and error code. State whether IPv6 is in scope for this phase.

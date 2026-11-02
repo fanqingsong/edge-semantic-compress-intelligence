@@ -1,34 +1,34 @@
 # edge-semantic-compress-intelligence
 
-边缘日志智能压缩与云端 RAG 故障分析系统。边缘侧通过规则过滤和本地小模型提炼日志，云端侧结合运维知识库检索历史案例并生成根因分析与修复建议。
+An edge log compression and cloud RAG fault-analysis system. On the edge, rule filtering and a local small model distill logs. In the cloud, an operations knowledge base retrieves historical cases and produces root-cause analysis and remediation suggestions.
 
-仓库包含需求、技术方案、按服务编写的实现说明、PRD 和架构决策文档。代码也按服务分包：边缘是过滤、摘要、传输和 edge agent；云端是知识入库、检索、RAG、反馈和 cloud agent。生产 CA/证书、真实 SLM、运行中的 Embedding/云端模型及自动化 Prompt 分发仍待部署。
+The repository contains requirements, the technical design, per-service implementation notes, PRDs, and architecture decision records. Code is packaged by service as well: the edge covers filtering, summarization, transport, and the edge agent; the cloud covers knowledge ingestion, retrieval, RAG, feedback, and the cloud agent. A production CA and certificates, a real SLM, a running embedding model and cloud model, and automated prompt distribution are still to be deployed.
 
-## 架构设计
+## Architecture
 
-系统在带宽和边缘算力受限的条件下做故障诊断。边缘把原始日志压成稳定的结构化事件；云端用运维知识做检索增强分析。两侧只通过 `EdgeEvent` 契约耦合，云端不绑定边缘 SLM 的模型版本，边缘不部署 Embedding。服务边界和代码位置见 [服务目录](docs/services/README.md)。按服务粒度管理代码与文档的规则见 [ADR-0010](docs/adr/adr-0010-service-granularity.md)，边缘与云端的职责划分见 [ADR-0001](docs/adr/adr-0001-edge-cloud-boundary.md)。
+The system diagnoses faults under limited bandwidth and edge compute. The edge compresses raw logs into stable structured events. The cloud uses operations knowledge for retrieval-augmented analysis. The two sides couple only through the `EdgeEvent` contract. The cloud is not tied to the edge SLM model version, and the edge does not run embeddings. Service boundaries and code locations are in the [service catalog](docs/services/README.md). Rules for managing code and docs at service granularity are in [ADR-0010](docs/adr/adr-0010-service-granularity.md). The split of responsibilities between edge and cloud is in [ADR-0001](docs/adr/adr-0001-edge-cloud-boundary.md).
 
-### 部署视图
+### Deployment view
 
-本地拓扑由 [compose.yaml](compose.yaml) 定义。Fluent Bit 读取挂载日志目录，并在 UDP `5514` 接收 Syslog，归一化后 `POST` 到 [edge agent](docs/services/edge/agent.md)。edge agent 监听 `8090`，内部依次调用过滤、摘要和传输，经 MQTT `8883` 发布事件。[cloud agent](docs/services/cloud/agent.md) 订阅同一主题，调用检索和 RAG，并写入本地分析库与反馈库。Milvus 单机模式依赖 etcd 和 MinIO。[知识入库](docs/services/cloud/knowledge.md)与[反馈](docs/services/cloud/feedback.md)审核是独立进程，挂在 Compose profile `tools` 上，不随主链路常驻。
+The local topology is defined in [compose.yaml](compose.yaml). Fluent Bit reads the mounted log directory and receives syslog on UDP `5514`. After normalization it `POST`s to the [edge agent](docs/services/edge/agent.md). The edge agent listens on `8090` and internally calls filtering, summarization, and transport in order, then publishes events over MQTT `8883`. The [cloud agent](docs/services/cloud/agent.md) subscribes to the same topic, calls retrieval and RAG, and writes the local analysis store and feedback store. Milvus standalone mode depends on etcd and MinIO. [Knowledge ingestion](docs/services/cloud/knowledge.md) and [feedback](docs/services/cloud/feedback.md) review are separate processes on the Compose profile `tools`, and they do not stay up with the main path.
 
 ```mermaid
 flowchart LR
-	subgraph EdgeDeploy[边缘]
-		LogFiles[日志文件] --> FluentBit[FluentBit]
+	subgraph EdgeDeploy[Edge]
+		LogFiles[Log files] --> FluentBit[FluentBit]
 		SyslogUdp[Syslog_UDP_5514] --> FluentBit
 		FluentBit -->|"POST /v1/logs"| EdgeAgent[EdgeAgent_8090]
 		EdgeAgent --> Outbox[SQLiteOutbox]
 	end
 
-	subgraph Broker[消息平面]
+	subgraph Broker[Message plane]
 		Mosquitto[Mosquitto_mTLS_8883]
 	end
 
-	subgraph CloudDeploy[云端]
+	subgraph CloudDeploy[Cloud]
 		CloudAgent[CloudAgent]
-		AnalysisDb[分析库_SQLite]
-		FeedbackDb[反馈库_SQLite]
+		AnalysisDb[Analysis store_SQLite]
+		FeedbackDb[Feedback store_SQLite]
 		Milvus[Milvus_ops_cases]
 		Etcd[etcd]
 		Minio[MinIO]
@@ -45,56 +45,56 @@ flowchart LR
 	Milvus --> Minio
 ```
 
-### 服务
+### Services
 
-各服务的职责、边界和代码路径见 [服务目录](docs/services/README.md)。进程只有四个：`edge-log-agent`、`cloud-rag-agent`、`knowledge-ingest`、`prompt-feedback`。过滤、摘要、传输由 edge agent 调用；检索和 RAG 由 cloud agent 调用。反馈同时有在线观察和独立审核进程。
+Responsibilities, boundaries, and code paths for each service are in the [service catalog](docs/services/README.md). There are four processes: `edge-log-agent`, `cloud-rag-agent`, `knowledge-ingest`, and `prompt-feedback`. Filtering, summarization, and transport are called by the edge agent. Retrieval and RAG are called by the cloud agent. Feedback has both online observation and a separate review process.
 
-跨部署边界是 [`shared` 中的 `EdgeEvent`](docs/services/shared.md)。Mosquitto 提供 mTLS 和 Topic ACL：`edge-agent` 只写、`cloud-agent` 只读 `edge/events`；`healthcheck` 只读 `$SYS/broker/uptime`。
+The contract across the deployment boundary is [`EdgeEvent` in `shared`](docs/services/shared.md). Mosquitto provides mTLS and topic ACLs: `edge-agent` may only publish to `edge/events`, `cloud-agent` may only subscribe to it, and `healthcheck` may only read `$SYS/broker/uptime`.
 
-### 在线故障分析
+### Online fault analysis
 
-一条日志批次由 [过滤](docs/services/edge/filtering.md)、[摘要](docs/services/edge/summarization.md) 和 [传输](docs/services/edge/transport.md) 完成压缩，再由 [cloud agent](docs/services/cloud/agent.md) 完成一次 [检索](docs/services/cloud/retrieval.md) 和 [RAG](docs/services/cloud/rag.md)。L4 对同一服务、同一消息超过阈值的重复项只保留首尾。摘要按服务各生成一个事件。
+A log batch is compressed by [filtering](docs/services/edge/filtering.md), [summarization](docs/services/edge/summarization.md), and [transport](docs/services/edge/transport.md). The [cloud agent](docs/services/cloud/agent.md) then runs one [retrieval](docs/services/cloud/retrieval.md) and one [RAG](docs/services/cloud/rag.md) pass. At L4, repeated items for the same service and the same message above the threshold keep only the first and last occurrence. Summarization produces one event per service.
 
 ```mermaid
 flowchart TD
-	Batch[日志批次] --> L1[L1格式校验]
-	L1 -->|非法| DropFormat[丢弃并计数]
-	L1 --> L2[L2成功状态]
-	L2 -->|200或ok| DropStatus[丢弃并计数]
-	L2 --> L3[L3关键字黑名单]
-	L3 -->|心跳或健康检查| DropKeyword[丢弃并计数]
-	L3 --> L4[L4频率抑制]
-	L4 -->|超阈值的中间重复| DropRepeat[保留首尾]
-	L4 --> GroupByService[按服务分组]
-	GroupByService --> Summarize[受约束摘要]
-	Summarize --> EntityFill[实体校验与回补]
+	Batch[Log batch] --> L1[L1 format check]
+	L1 -->|invalid| DropFormat[Drop and count]
+	L1 --> L2[L2 success status]
+	L2 -->|200 or ok| DropStatus[Drop and count]
+	L2 --> L3[L3 keyword denylist]
+	L3 -->|heartbeat or health check| DropKeyword[Drop and count]
+	L3 --> L4[L4 rate suppression]
+	L4 -->|middle repeats over threshold| DropRepeat[Keep first and last]
+	L4 --> GroupByService[Group by service]
+	GroupByService --> Summarize[Constrained summary]
+	Summarize --> EntityFill[Entity check and backfill]
 	EntityFill --> EdgeEvent[EdgeEvent_v1]
 	EdgeEvent --> Outbox[SQLiteOutbox]
 	Outbox --> Publish[MQTT_QoS1]
-	Publish --> Consume[按event_id幂等消费]
-	Consume --> Retrieve[IP过滤加向量Top5]
-	Retrieve --> Prompt[三段式Prompt]
-	Prompt --> Persist[写入分析库]
-	Prompt --> Observe[观察摘要质量]
+	Publish --> Consume[Idempotent consume by event_id]
+	Consume --> Retrieve[IP filter plus vector Top5]
+	Retrieve --> Prompt[Three-section prompt]
+	Prompt --> Persist[Write analysis store]
+	Prompt --> Observe[Observe summary quality]
 ```
 
-检索在缺少 `target_ip` 或没有精确 IP 匹配时返回空案例集，不退化为纯向量搜索。Prompt 固定为 `<edge_summary>`、`<retrieved_cases>`、`<analysis_instructions>` 三段，摘要和案例按不可信数据转义。策略见 [检索服务](docs/services/cloud/retrieval.md) 和 [ADR-0006](docs/adr/adr-0006-hybrid-retrieval.md)。
+When `target_ip` is missing or there is no exact IP match, retrieval returns an empty case set and does not fall back to vector-only search. The prompt is fixed as three sections: `<edge_summary>`, `<retrieved_cases>`, and `<analysis_instructions>`. Summaries and cases are escaped as untrusted data. The policy is described in the [retrieval service](docs/services/cloud/retrieval.md) and [ADR-0006](docs/adr/adr-0006-hybrid-retrieval.md).
 
-### 知识入库
+### Knowledge ingestion
 
-知识平面与在线链路分开，由 [知识入库服务](docs/services/cloud/knowledge.md) 单独运行。它读取运维文档或历史案例，解析为带 `target_ip` 的案例，通过检索服务写入 Milvus `ops_cases`。入库元数据与检索过滤使用同一 IP 字段。
+The knowledge plane is separate from the online path and runs on its own through the [knowledge ingestion service](docs/services/cloud/knowledge.md). It reads operations documents or historical cases, parses them into cases that carry `target_ip`, and writes them to the Milvus collection `ops_cases` through the retrieval service. Ingestion metadata and retrieval filters use the same IP field.
 
 ```mermaid
 flowchart LR
-	Sources[运维文档与历史案例] --> Parse[MarkItDown或JSONLines]
-	Parse --> Embed[bge-m3或确定性mock]
+	Sources[Ops docs and historical cases] --> Parse[MarkItDown or JSON Lines]
+	Parse --> Embed[bge-m3 or deterministic mock]
 	Embed --> Collection[Milvus_ops_cases]
-	Collection --> OnlineRetrieve[在线混合检索]
+	Collection --> OnlineRetrieve[Online hybrid retrieval]
 ```
 
-### 反馈治理
+### Feedback governance
 
-[反馈服务](docs/services/cloud/feedback.md) 在 cloud agent 完成 RAG 后观察该事件。可选实体有缺失时生成 `missing_entities` 建议；实体齐全但召回为空时生成 `no_retrieved_cases` 建议。审核 CLI 是独立进程。发布只记录状态，不替换 edge agent 的线上 Prompt。治理要求见该服务说明和 [ADR-0008](docs/adr/adr-0008-feedback-governance.md)。
+After the cloud agent finishes RAG, the [feedback service](docs/services/cloud/feedback.md) observes that event. Missing optional entities produce a `missing_entities` suggestion. Complete entities with empty recall produce a `no_retrieved_cases` suggestion. The review CLI is a separate process. Publishing only records status and does not replace the edge agent's live prompt. Governance requirements are in that service note and [ADR-0008](docs/adr/adr-0008-feedback-governance.md).
 
 ```mermaid
 stateDiagram-v2
@@ -104,33 +104,33 @@ stateDiagram-v2
 	approved --> published
 ```
 
-### 可靠性与安全
+### Reliability and security
 
-[传输服务](docs/services/edge/transport.md) 提供至少一次投递：先写入 outbox，收到 broker 确认后才删除。该确认不表示云端业务已完成。[cloud agent](docs/services/cloud/agent.md) 在业务处理成功且去重记录落盘后才手动 ACK。接入强制 mTLS。检索在向量库过滤之后再次比对 IP。
+The [transport service](docs/services/edge/transport.md) provides at-least-once delivery: it writes the outbox first and deletes the record only after the broker acknowledges it. That acknowledgement does not mean cloud-side business processing has finished. The [cloud agent](docs/services/cloud/agent.md) sends a manual ACK only after business processing succeeds and the deduplication record is persisted. Ingress requires mTLS. After the vector store applies its filter, retrieval compares the IP again.
 
-### 实现状态
+### Implementation status
 
-已实现：过滤、摘要、传输、edge agent、知识入库、检索、RAG、反馈和 cloud agent。Fluent Bit 的文件与 Syslog 配置也已提供。
+Implemented: filtering, summarization, transport, the edge agent, knowledge ingestion, retrieval, RAG, feedback, and the cloud agent. Fluent Bit file and syslog configuration is included.
 
-待部署：生产 CA 与证书轮换、目标硬件上的真实 SLM、运行中的 Embedding 与分析模型、已批准 Prompt 的分发与回滚、预过滤引擎的 Prometheus 指标。Kafka、Elasticsearch、LlamaIndex 仍是 ADR 中的候选，不在当前运行路径上。
+Still to deploy: a production CA and certificate rotation, a real SLM on the target hardware, a running embedding model and analysis model, distribution and rollback of approved prompts, and Prometheus metrics for the pre-filter. Kafka, Elasticsearch, and LlamaIndex remain candidates in the ADRs and are off the current runtime path.
 
-选型与约束以 [ADR 索引](docs/adr/README.md) 为准。
+Technology choices and constraints follow the [ADR index](docs/adr/README.md).
 
-## 文档导航
+## Documentation
 
-- [服务目录](docs/services/README.md)：每个服务的职责、边界和代码路径。
-- [需求文档](docs/requirements)：业务目标、功能需求和非功能性约束。
-- [技术方案](docs/technology)：参考架构、数据流程、组件候选及实施阶段。
-- [PRD 索引](docs/prds/README.md)：按服务对应的需求、验收标准和依赖。
-- [ADR 索引](docs/adr/README.md)：架构决策、替代方案、状态及尚待确认的选型。
-- [本地开发](docs/local-development.md)：按服务运行测试、启动 Compose、知识入库和反馈审核。
+- [Service catalog](docs/services/README.md): responsibilities, boundaries, and code paths for each service.
+- [Requirements](docs/requirements): business goals, functional requirements, and non-functional constraints.
+- [Technical design](docs/technology): reference architecture, data flow, component candidates, and implementation phases.
+- [PRD index](docs/prds/README.md): requirements, acceptance criteria, and dependencies for each service.
+- [ADR index](docs/adr/README.md): architecture decisions, alternatives, status, and choices still to confirm.
+- [Local development](docs/local-development.md): run tests per service, start Compose, ingest knowledge, and review feedback.
 
-建议阅读顺序：需求文档 → 技术方案 → 服务目录 → 对应 PRD → 相关 ADR。
+Suggested reading order: requirements, then the technical design, the service catalog, the matching PRD, and the related ADRs.
 
-## 建议实施顺序
+## Suggested implementation order
 
-1. **端到端 MVP**：边缘规则过滤、云端知识入库、混合检索与 RAG；可先使用规则模拟摘要验证云端链路。
-2. **边缘智能提炼**：接入本地 SLM、Schema 约束输出和实体校验，并完成端到端联调。
-3. **可靠性与反馈闭环**：完善安全传输、弱网补传、运行观测和 Prompt 建议评估。
+1. **End-to-end MVP**: edge rule filtering, cloud knowledge ingestion, hybrid retrieval, and RAG. A rule-based simulated summary can validate the cloud path first.
+2. **Edge intelligent distillation**: add a local SLM, schema-constrained output, and entity validation, then finish end-to-end integration.
+3. **Reliability and the feedback loop**: secure transport, retry on weak networks, runtime observation, and evaluation of prompt suggestions.
 
-详细依赖和验收要求见 [PRD 索引](docs/prds/README.md)。MQTT/Kafka、向量存储、模型格式等未定选型见 [ADR 索引](docs/adr/README.md)。
+Dependencies and acceptance criteria are in the [PRD index](docs/prds/README.md). Open choices such as MQTT or Kafka, vector storage, and model format are in the [ADR index](docs/adr/README.md).

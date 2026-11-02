@@ -1,43 +1,43 @@
-# 产品需求文档索引
+# Product requirements index
 
-本目录将 [系统需求文档](../requirements) 按服务拆成可分阶段实现和验收的 PRD。原需求编号在各文档中保留，便于追踪需求、设计和测试。代码位置见 [服务目录](../services/README.md)。
+This directory splits the [system requirements](../requirements) into PRDs that can be implemented and accepted in stages. Each document keeps the original requirement IDs so requirements, design, and tests stay traceable. Code locations are in the [service catalog](../services/README.md).
 
-## PRD 列表
+## PRD list
 
-| 编号 | PRD | 服务 | 覆盖需求 | 主要依赖 |
+| ID | PRD | Service | Requirements | Main dependencies |
 |---|---|---|---|---|
-| PRD-01 | [边缘日志采集与规则预过滤](prd-01-edge-ingestion-filtering.md) | [过滤](../services/edge/filtering.md) | E-01、E-02 | 无 |
-| PRD-02 | [边缘 SLM 结构化提炼与实体校验](prd-02-edge-summarization.md) | [摘要](../services/edge/summarization.md) | E-03、E-04 | PRD-01 |
-| PRD-03 | [边缘安全传输与弱网缓冲](prd-03-secure-transport.md) | [传输](../services/edge/transport.md) | E-05 | PRD-02；[cloud agent](../services/cloud/agent.md) |
-| PRD-04 | [云端知识入库](prd-04-knowledge-ingestion.md) | [知识入库](../services/cloud/knowledge.md) | C-01 | 无；为 PRD-05 提供知识数据 |
-| PRD-05 | [云端混合检索](prd-05-hybrid-retrieval.md) | [检索](../services/cloud/retrieval.md) | C-02 | PRD-04；边缘摘要契约 |
-| PRD-06 | [云端 RAG 根因分析](prd-06-rag-analysis.md) | [RAG](../services/cloud/rag.md) | C-03 | PRD-05 |
-| PRD-07 | [摘要质量反馈闭环](prd-07-feedback-loop.md) | [反馈](../services/cloud/feedback.md) | C-04 | PRD-02、PRD-06 |
+| PRD-01 | [Edge log collection and rule pre-filtering](prd-01-edge-ingestion-filtering.md) | [Filtering](../services/edge/filtering.md) | E-01, E-02 | None |
+| PRD-02 | [Edge SLM structured distillation and entity validation](prd-02-edge-summarization.md) | [Summarization](../services/edge/summarization.md) | E-03, E-04 | PRD-01 |
+| PRD-03 | [Edge secure transport and weak-network buffering](prd-03-secure-transport.md) | [Transport](../services/edge/transport.md) | E-05 | PRD-02; [cloud agent](../services/cloud/agent.md) |
+| PRD-04 | [Cloud knowledge ingestion](prd-04-knowledge-ingestion.md) | [Knowledge ingestion](../services/cloud/knowledge.md) | C-01 | None; supplies knowledge data for PRD-05 |
+| PRD-05 | [Cloud hybrid retrieval](prd-05-hybrid-retrieval.md) | [Retrieval](../services/cloud/retrieval.md) | C-02 | PRD-04; edge summary contract |
+| PRD-06 | [Cloud RAG root-cause analysis](prd-06-rag-analysis.md) | [RAG](../services/cloud/rag.md) | C-03 | PRD-05 |
+| PRD-07 | [Summary-quality feedback loop](prd-07-feedback-loop.md) | [Feedback](../services/cloud/feedback.md) | C-04 | PRD-02, PRD-06 |
 
-edge agent 与 cloud agent 是组装进程，没有单独的 PRD。说明见 [edge agent](../services/edge/agent.md) 和 [cloud agent](../services/cloud/agent.md)。
+The edge agent and the cloud agent are assembly processes and do not have their own PRDs. See the [edge agent](../services/edge/agent.md) and the [cloud agent](../services/cloud/agent.md).
 
-## 建议实施顺序
+## Suggested implementation order
 
-1. **端到端 MVP**：PRD-01、PRD-03 的最小接入能力、PRD-04、PRD-05、PRD-06。按原技术方案，MVP 可用规则模拟边缘摘要，先验证云端链路。
-2. **边缘智能提炼**：交付 PRD-02，并与 PRD-01、PRD-03 联调。
-3. **质量改进闭环**：交付 PRD-07，建立评估、审核和回流流程。
+1. **End-to-end MVP**: PRD-01, the minimum ingress from PRD-03, PRD-04, PRD-05, and PRD-06. Following the original technical design, the MVP may simulate the edge summary with rules and validate the cloud path first.
+2. **Edge intelligent distillation**: deliver PRD-02 and integrate it with PRD-01 and PRD-03.
+3. **Quality-improvement loop**: deliver PRD-07 and establish evaluation, review, and feedback.
 
-PRD-03 的完整弱网可靠性、安全策略应在 MVP 中定义接口并明确未实现项，不能将模拟链路视为 E-05 已验收。
+The full weak-network reliability and security policy of PRD-03 should have their interfaces defined in the MVP, with unimplemented items called out. A simulated path does not count as acceptance of E-05.
 
-## 全局约束
+## Global constraints
 
-- 边缘侧不部署 Embedding 模型；SLM 参数量不超过 3B；云端不依赖边缘模型版本。
-- 边缘 SLM 输出必须受 JSON Schema 或 Grammar 约束，禁止自由文本作为结构化接口。
-- 边缘预过滤引擎内存低于 50 MB；SLM 显存占用低于 2 GB；整机功耗低于 30 W。需在目标硬件上验证。
-- 边缘预过滤引擎需暴露 Prometheus CPU、内存和吞吐量指标。
-- 原始日志、摘要和检索结果的评测数据集及测量方法需在实施前定义；指标未定义测量条件时，不视为可复现验收。
+- The edge does not run an embedding model. The SLM has at most 3B parameters. The cloud does not depend on the edge model version.
+- Edge SLM output must be constrained by a JSON Schema or grammar. Free text is not a structured interface.
+- Edge pre-filter memory is under 50 MB. SLM video memory is under 2 GB. Whole-device power is under 30 W. These limits must be verified on the target hardware.
+- The edge pre-filter exposes Prometheus metrics for CPU, memory, and throughput.
+- Evaluation datasets and measurement methods for raw logs, summaries, and retrieval results must be defined before implementation. A metric without a defined measurement condition is not a reproducible acceptance criterion.
 
-## 待决策项
+## Open decisions
 
-- **边缘组件与模型运行时**：技术方案默认 Fluent Bit，SLM 使用 llama.cpp；候选模型中包含 AWQ 与 GGUF 量化格式，需在目标硬件上确认兼容的模型格式和运行时。
-- **传输协议**：在 MQTT v5 与 Kafka 中选择，并确定消息确认、重试、幂等、磁盘缓冲容量、断网时长及溢出处理。
-- **云端存储与编排**：确定 Milvus 或 Elasticsearch，以及 LlamaIndex 或 LangChain。
-- **精确 IP 过滤的降级行为**：无 target_ip 或无精确匹配时是否放宽过滤，以及放宽规则。
-- **实体补全边界**：仅从原始日志提取，不得臆造；定义字段缺失且无法提取时的处理方式。
-- **安全与数据治理**：定义原始日志脱敏、留存期限、证书轮换和 Prompt 建议上线前的审核要求。
-- **指标评测口径**：定义无效日志、相关案例、可执行建议、摘要完整度的标注标准和评审流程。
+- **Edge components and model runtime**: the technical design defaults to Fluent Bit, and the SLM uses llama.cpp. Candidate models include AWQ and GGUF quantization. The compatible model format and runtime must be confirmed on the target hardware.
+- **Transport protocol**: choose MQTT v5 or Kafka, and define acknowledgement, retry, idempotency, disk-buffer capacity, offline duration, and overflow behavior.
+- **Cloud storage and orchestration**: choose Milvus or Elasticsearch, and LlamaIndex or LangChain.
+- **Fallback for exact IP filtering**: decide whether to relax the filter when `target_ip` is missing or there is no exact match, and define the relaxation rule.
+- **Entity backfill boundary**: values may be extracted only from the raw log and must not be invented. Define the behavior when a field is missing and cannot be extracted.
+- **Security and data governance**: define raw-log redaction, retention, certificate rotation, and the review required before a prompt suggestion goes live.
+- **Metric definitions**: define labeling standards and review procedures for invalid logs, relevant cases, actionable suggestions, and summary completeness.

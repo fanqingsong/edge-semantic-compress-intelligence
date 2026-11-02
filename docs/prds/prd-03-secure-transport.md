@@ -1,33 +1,33 @@
-# PRD-03：边缘安全传输与弱网缓冲
+# PRD-03: Edge secure transport and weak-network buffering
 
-**原需求：** E-05
+**Original requirement:** E-05
 
-**服务：** [传输](../services/edge/transport.md)。云端接入在 [cloud agent](../services/cloud/agent.md)。
+**Service:** [Transport](../services/edge/transport.md). Cloud ingress is in the [cloud agent](../services/cloud/agent.md).
 
-## 目标
+## Goal
 
-将边缘结构化记录安全、可靠地传送到云端；网络暂时不可用时在本地持久缓冲，并在恢复后补传。
+Deliver structured edge records to the cloud securely and reliably. When the network is temporarily unavailable, buffer them locally and retry after connectivity returns.
 
-## 范围
+## Scope
 
-- MVP 使用 MQTT v5 传输结构化记录，使用 QoS 1 和 MessagePack；Kafka 不属于当前 MVP 范围。
-- 使用 mTLS 双向认证；按选定协议配置访问控制（如 MQTT Topic ACL）。
-- 使用 SQLite 本地磁盘 outbox 缓冲，支持重新发送和积压补传；默认容量为 100 MiB，可配置。
-- 技术方案要求使用 MessagePack 序列化；应与云端入口采用同一数据契约。
+- The MVP transports structured records with MQTT v5, QoS 1, and MessagePack. Kafka is outside the current MVP.
+- Use mutual TLS. Configure access control for the chosen protocol, such as an MQTT topic ACL.
+- Buffer in a SQLite local-disk outbox, with resend and catch-up of the backlog. The default capacity is 100 MiB and is configurable.
+- The technical design requires MessagePack serialization. The cloud ingress uses the same data contract.
 
-## 验收标准
+## Acceptance criteria
 
-- 未持有有效客户端证书的连接被拒绝；证书身份和授权策略可验证。
-- 在约定的网络中断时长、吞吐量和磁盘容量下，恢复连接后缓冲记录可完整补传。
-- 消息重试不会导致云端重复处理；通过稳定消息标识或等效机制验证幂等性。
-- 传输失败、缓冲积压、磁盘使用量和补传状态可观测。
+- A connection without a valid client certificate is rejected. Certificate identity and the authorization policy can be verified.
+- Under the agreed outage duration, throughput, and disk capacity, buffered records are fully retried after the connection returns.
+- Message retries do not cause duplicate processing in the cloud. Idempotency is verified with a stable message identifier or an equivalent mechanism.
+- Transport failures, buffer backlog, disk usage, and retry state are observable.
 
-## 依赖与待决策
+## Dependencies and open decisions
 
-- 依赖 PRD-02 的结构化记录和云端消息接入服务。
-- 本地 Compose 已启用 mTLS 和 Topic ACL；生产 broker 的组织 CA、证书轮换/吊销仍待部署。
-- 已验证无客户端证书无法连接，Cloud 证书不能向 Edge 事件主题发布。
-- broker 确认后才从 outbox 删除；该确认不等同于云端业务处理成功，消费者仍需按 `event_id` 幂等。
-- 云端消费者已实现手动 ACK 和持久去重；业务处理失败时不 ACK，重复的相同事件只 ACK、不重复处理。
-- 明确最大离线时长、设备磁盘配额、缓冲满载告警和生产证书轮换流程。
-- PRD-02 的 JSON 与传输层 MessagePack 分别属于模型输出和线缆编码，需定义一致的解码/编码边界。
+- Depends on the structured records from PRD-02 and on the cloud message-ingress service.
+- The local Compose stack already enables mTLS and topic ACLs. An organizational CA and certificate rotation or revocation for the production broker are still to be deployed.
+- A connection without a client certificate has been verified to fail. A cloud certificate cannot publish to the edge event topic.
+- An outbox record is deleted only after the broker acknowledges it. That acknowledgement is not the same as successful cloud business processing. The consumer still needs idempotency by `event_id`.
+- The cloud consumer implements manual ACK and persistent deduplication. It does not ACK when business processing fails. A repeated identical event is ACKed and is not processed again.
+- Define the maximum offline duration, the device disk quota, the alert when the buffer is full, and the production certificate-rotation procedure.
+- JSON in PRD-02 and MessagePack on the transport layer are the model output and the wire encoding. Define a consistent decode and encode boundary.

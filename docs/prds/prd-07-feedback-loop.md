@@ -1,31 +1,31 @@
-# PRD-07：摘要质量反馈闭环
+# PRD-07: Summary-quality feedback loop
 
-**原需求：** C-04
+**Original requirement:** C-04
 
-**服务：** [反馈](../services/cloud/feedback.md)
+**Service:** [Feedback](../services/cloud/feedback.md)
 
-## 目标
+## Goal
 
-利用云端分析中发现的摘要缺失问题，形成可审核、可追踪的边缘 Prompt 优化建议，并持续评估摘要质量变化。
+Use summary gaps found during cloud analysis to produce reviewable, traceable prompt-optimization suggestions for the edge, and keep measuring changes in summary quality.
 
-## 范围
+## Scope
 
-- 标记导致案例无法有效检索或分析的边缘摘要缺失问题。
-- 根据问题样本生成 Prompt 优化建议，并将获批建议回流到边缘侧。
-- 记录建议、审核、发布及效果评估结果。
-- MVP 在云端生成结构化建议并提供人工审核/发布状态 CLI；不会自动修改线上 Edge Prompt。
+- Mark edge-summary gaps that prevent effective retrieval or analysis.
+- Generate prompt-optimization suggestions from problem samples, and send approved suggestions back to the edge.
+- Record the suggestion, review, publication, and effect evaluation.
+- The MVP generates structured suggestions in the cloud and provides a CLI for human review and publication status. It does not automatically change the live edge prompt.
 
-## 验收标准
+## Acceptance criteria
 
-- 每周产出至少 3 条经评审认定有效的 Prompt 迭代建议。
-- 每月摘要信息完整度较基线提升至少 5%；需定义基线、完整度字段和评测样本。
-- 建议可追溯到来源问题和 Prompt 版本；可对发布结果进行回滚。
-- 未审核建议不得自动替换生产 Prompt。
+- Produce at least 3 prompt-iteration suggestions per week that reviewers judge to be valid.
+- Raise summary-information completeness by at least 5% per month against the baseline. The baseline, completeness fields, and evaluation sample are defined.
+- A suggestion can be traced to the source problem and the prompt version. A published result can be rolled back.
+- An unreviewed suggestion must not automatically replace the production prompt.
 
-## 依赖与待决策
+## Dependencies and open decisions
 
-- 依赖 PRD-02 的摘要字段契约和 PRD-06 的分析反馈。
-- 当前规则在缺少 target_ip/target_port/error_code 或无召回案例时生成建议；建议去重键为事件 ID 与类别。
-- `prompt-feedback --db <feedback.sqlite3> list|review|publish|weekly-report` 管理建议；`published` 仅表示人工确认已部署，不执行实际远程推送。
-- 定义“摘要缺失案例”“有效建议”和完整度提升的评估标准。
-- 确定审核角色、真实边缘分发、版本兼容、灰度发布和回滚方式。
+- Depends on the summary field contract from PRD-02 and the analysis feedback from PRD-06.
+- The current rule creates a suggestion when `target_ip`, `target_port`, or `error_code` is missing, or when no case is recalled. The deduplication key is the event ID plus the category.
+- `prompt-feedback --db <feedback.sqlite3> list|review|publish|weekly-report` manages suggestions. `published` means only that a person has confirmed deployment. It does not perform a remote push.
+- Define the evaluation standard for a "summary-gap case", a "valid suggestion", and a completeness improvement.
+- Decide the reviewer role, real edge distribution, version compatibility, canary release, and rollback.

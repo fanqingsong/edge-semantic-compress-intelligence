@@ -1,13 +1,13 @@
-# 传输
+# Transport
 
-代码：[`services/edge/transport`](../../../src/edge_semantic_compress_intelligence/services/edge/transport)
+Code: [`services/edge/transport`](../../../src/edge_semantic_compress_intelligence/services/edge/transport)
 
-关联：[PRD-03](../../prds/prd-03-secure-transport.md)、[ADR-0004](../../adr/adr-0004-secure-transport.md)
+Related: [PRD-03](../../prds/prd-03-secure-transport.md), [ADR-0004](../../adr/adr-0004-secure-transport.md)
 
-## 职责
+## Responsibilities
 
-把 `EdgeEvent` 编码为 MessagePack，以 QoS 1 发到默认主题 `edge/events`。发出前写入 SQLite outbox，收到 broker 的发布确认后才删除。该确认只表示 broker 已接收，不表示云端业务已完成。
+Encode `EdgeEvent` as MessagePack and publish it at QoS 1 to the default topic `edge/events`. The event is written to the SQLite outbox before it is sent, and the record is deleted only after the broker acknowledges the publish. That acknowledgement means the broker accepted the message. It does not mean cloud-side business processing has finished.
 
-断线期间事件留在本地，连接恢复后补传。outbox 默认上限 100 MiB。达到上限时拒绝新事件，不覆盖旧记录。[edge agent](agent.md) 把这种情况返回为 HTTP 507。
+While disconnected, events stay local and are retried after the connection returns. The outbox defaults to a 100 MiB limit. At the limit, new events are rejected and old records are not overwritten. The [edge agent](agent.md) returns HTTP 507 in that case.
 
-本服务不解析日志，也不调用摘要模型。mTLS 与 Topic ACL 由 Mosquitto 执行：`edge-agent` 证书只可写 `edge/events`。
+This service does not parse logs and does not call the summarization model. mTLS and topic ACLs are enforced by Mosquitto: the `edge-agent` certificate may only publish to `edge/events`.
