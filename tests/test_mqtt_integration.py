@@ -82,7 +82,7 @@ class LocalMqttIntegrationTests(unittest.TestCase):
             client.disconnect()
             client.loop_stop()
 
-    def test_cloud_certificate_cannot_publish_to_edge_topic(self) -> None:
+    def test_bridge_certificate_cannot_publish_to_edge_topic(self) -> None:
         host = os.environ.get("MQTT_HOST", "127.0.0.1")
         port = int(os.environ.get("MQTT_PORT", "8883"))
         topic = "edge/events"
@@ -91,8 +91,8 @@ class LocalMqttIntegrationTests(unittest.TestCase):
         configure_mtls(
             client,
             ca_file=str(cert_dir / "ca.crt"),
-            certificate_file=str(cert_dir / "cloud-agent.crt"),
-            key_file=str(cert_dir / "cloud-agent.key"),
+            certificate_file=str(cert_dir / "mqtt-kafka-bridge.crt"),
+            key_file=str(cert_dir / "mqtt-kafka-bridge.key"),
         )
         connected = threading.Event()
         publish_completed = threading.Event()
@@ -166,9 +166,11 @@ class LocalMqttIntegrationTests(unittest.TestCase):
                 subscriber,
                 ca_file=os.environ.get("MQTT_CA_FILE", str(cert_dir / "ca.crt")),
                 certificate_file=os.environ.get(
-                    "MQTT_CERT_FILE", str(cert_dir / "cloud-agent.crt")
+                    "MQTT_CERT_FILE", str(cert_dir / "mqtt-kafka-bridge.crt")
                 ),
-                key_file=os.environ.get("MQTT_KEY_FILE", str(cert_dir / "cloud-agent.key")),
+                key_file=os.environ.get(
+                    "MQTT_KEY_FILE", str(cert_dir / "mqtt-kafka-bridge.key")
+                ),
             )
             subscribe_confirmed = threading.Event()
             original_on_message = subscriber.on_message

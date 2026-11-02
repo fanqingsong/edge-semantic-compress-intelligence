@@ -2,6 +2,7 @@
 
 - Status: Accepted (MVP: MQTT v5 + MessagePack + SQLite outbox)
 - Date: 2026-11-01
+- The clustered MQTT broker and the cloud-side Kafka bridge are in [ADR-0011](adr-0011-clustered-mqtt-kafka-bridge.md). This record keeps the original MVP conclusion.
 - Related PRD: PRD-03
 - Code: [Transport](../services/edge/transport.md). Cloud consumption is in the [cloud agent](../services/cloud/agent.md).
 
@@ -33,7 +34,7 @@ The edge must send structured summaries over an unstable network. The system req
 - Define the target device disk quota, the maximum offline duration, and the alert and response when the outbox is full.
 - Configure an organizational CA, certificate rotation and revocation, and the cloud consumption acknowledgement policy for the production MQTT broker.
 - Evaluate encryption at rest for the local outbox. Today only database file permissions are restricted. Disk encryption is not provided.
-- If a Kafka infrastructure already exists later, or throughput requirements change, evaluate adding a Kafka transport adapter.
+- The later Kafka transport evaluation is recorded in [ADR-0011](adr-0011-clustered-mqtt-kafka-bridge.md). The edge stays on MQTT. Kafka is a cloud-side bridge, not an edge client.
 
 ## Consequences
 

@@ -59,9 +59,11 @@ class FluentBitIntegrationTests(unittest.TestCase):
             client,
             ca_file=os.environ.get("MQTT_CA_FILE", str(cert_dir / "ca.crt")),
             certificate_file=os.environ.get(
-                "MQTT_CERT_FILE", str(cert_dir / "cloud-agent.crt")
+                "MQTT_CERT_FILE", str(cert_dir / "mqtt-kafka-bridge.crt")
             ),
-            key_file=os.environ.get("MQTT_KEY_FILE", str(cert_dir / "cloud-agent.key")),
+            key_file=os.environ.get(
+                "MQTT_KEY_FILE", str(cert_dir / "mqtt-kafka-bridge.key")
+            ),
         )
         try:
             client.connect(mqtt_host, mqtt_port, keepalive=15)
@@ -107,9 +109,11 @@ class FluentBitIntegrationTests(unittest.TestCase):
             client,
             ca_file=os.environ.get("MQTT_CA_FILE", str(cert_dir / "ca.crt")),
             certificate_file=os.environ.get(
-                "MQTT_CERT_FILE", str(cert_dir / "cloud-agent.crt")
+                "MQTT_CERT_FILE", str(cert_dir / "mqtt-kafka-bridge.crt")
             ),
-            key_file=os.environ.get("MQTT_KEY_FILE", str(cert_dir / "cloud-agent.key")),
+            key_file=os.environ.get(
+                "MQTT_KEY_FILE", str(cert_dir / "mqtt-kafka-bridge.key")
+            ),
         )
 
         log_directory = Path(__file__).resolve().parents[1] / "examples" / "logs"

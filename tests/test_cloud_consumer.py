@@ -7,6 +7,7 @@ from typing import Any
 from collections.abc import Sequence
 
 from cloud.agent.consumer import (
+    KafkaEventConsumer,
     MqttDelivery,
     MqttEventConsumer,
     SQLiteProcessedEventStore,
@@ -72,6 +73,63 @@ def event_payload(summary: str = "Database timeout") -> bytes:
             "summary": summary,
         }
     ).encode("utf-8")
+
+
+class KafkaEventConsumerTests(unittest.TestCase):
+    def test_successful_processing_commits_offset(self) -> None:
+        commits: list[str] = []
+        store = SQLiteProcessedEventStore(":memory:")
+        self.addCleanup(store.close)
+        consumer = KafkaEventConsumer(JsonCodec(), store, lambda event: None)
+
+        result = consumer.handle_payload(event_payload(), lambda: commits.append("commit"))
+
+        self.assertEqual(result.disposition, "processed")
+        self.assertEqual(commits, ["commit"])
+
+    def test_duplicate_commits_without_reprocessing(self) -> None:
+        handled: list[str] = []
+        commits: list[int] = []
+        store = SQLiteProcessedEventStore(":memory:")
+        self.addCleanup(store.close)
+        consumer = KafkaEventConsumer(
+            JsonCodec(), store, lambda event: handled.append(event.event_id)
+        )
+        payload = event_payload()
+
+        first = consumer.handle_payload(payload, lambda: commits.append(1))
+        second = consumer.handle_payload(payload, lambda: commits.append(2))
+
+        self.assertEqual(first.disposition, "processed")
+        self.assertEqual(second.disposition, "duplicate")
+        self.assertEqual(handled, [first.event_id])
+        self.assertEqual(commits, [1, 2])
+
+    def test_failed_handler_does_not_commit(self) -> None:
+        commits: list[str] = []
+        store = SQLiteProcessedEventStore(":memory:")
+        self.addCleanup(store.close)
+
+        def fail(event: EdgeEvent) -> None:
+            raise RuntimeError("temporary downstream error")
+
+        consumer = KafkaEventConsumer(JsonCodec(), store, fail)
+        result = consumer.handle_payload(event_payload(), lambda: commits.append("commit"))
+
+        self.assertEqual(result.disposition, "processing_failed")
+        self.assertEqual(commits, [])
+
+    def test_commit_failure_is_reported(self) -> None:
+        store = SQLiteProcessedEventStore(":memory:")
+        self.addCleanup(store.close)
+        consumer = KafkaEventConsumer(JsonCodec(), store, lambda event: None)
+
+        def fail_commit() -> None:
+            raise RuntimeError("coordinator")
+
+        result = consumer.handle_payload(event_payload(), fail_commit)
+
+        self.assertEqual(result.disposition, "ack_failed")
 
 
 class MqttEventConsumerTests(unittest.TestCase):

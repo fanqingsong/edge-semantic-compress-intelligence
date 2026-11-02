@@ -152,30 +152,67 @@ class MqttEventConsumer:
         )
 
     def handle_message(self, client: Any, delivery: MqttDelivery) -> ConsumeResult:
+        result = self._process(delivery.payload)
+        if result.disposition not in {"processed", "duplicate"}:
+            return result
         try:
-            with self._lock:
-                state = self._graph.invoke({"payload": delivery.payload})
+            ack_result = client.ack(delivery.mid, delivery.qos)
         except Exception:
-            return ConsumeResult(
-                disposition="processing_failed",
-                event_id=self._event_id(delivery.payload),
-            )
+            return ConsumeResult(disposition="ack_failed", event_id=result.event_id)
+        if ack_result != 0:
+            return ConsumeResult(disposition="ack_failed", event_id=result.event_id)
+        return result
 
-        disposition = state["disposition"]
-        event_id = state.get("event_id")
-        if disposition not in {"processed", "duplicate"}:
-            return ConsumeResult(disposition=disposition, event_id=event_id)
+    def _process(self, payload: bytes) -> ConsumeResult:
+        return process_payload(self._graph, self.codec, self._lock, payload)
 
+
+class KafkaEventConsumer:
+    def __init__(
+        self,
+        codec: MessageCodec,
+        store: ProcessedEventStore,
+        handler: EventHandler,
+    ) -> None:
+        self.codec = codec
+        self.store = store
+        self.handler = handler
+        self._lock = threading.Lock()
+        self._graph = build_consume_graph(codec, store, handler)
+
+    def handle_payload(self, payload: bytes, commit: Callable[[], None]) -> ConsumeResult:
+        result = process_payload(self._graph, self.codec, self._lock, payload)
+        if result.disposition not in {"processed", "duplicate"}:
+            return result
         try:
-            result = client.ack(delivery.mid, delivery.qos)
+            commit()
         except Exception:
-            return ConsumeResult(disposition="ack_failed", event_id=event_id)
-        if result != 0:
-            return ConsumeResult(disposition="ack_failed", event_id=event_id)
-        return ConsumeResult(disposition=disposition, event_id=event_id)
+            return ConsumeResult(disposition="ack_failed", event_id=result.event_id)
+        return result
 
-    def _event_id(self, payload: bytes) -> str | None:
-        try:
-            return self.codec.decode(payload).event_id
-        except Exception:
-            return None
+
+def process_payload(
+    graph: Any,
+    codec: MessageCodec,
+    lock: threading.Lock,
+    payload: bytes,
+) -> ConsumeResult:
+    try:
+        with lock:
+            state = graph.invoke({"payload": payload})
+    except Exception:
+        return ConsumeResult(
+            disposition="processing_failed",
+            event_id=event_id_from_payload(codec, payload),
+        )
+    return ConsumeResult(
+        disposition=state["disposition"],
+        event_id=state.get("event_id"),
+    )
+
+
+def event_id_from_payload(codec: MessageCodec, payload: bytes) -> str | None:
+    try:
+        return codec.decode(payload).event_id
+    except Exception:
+        return None

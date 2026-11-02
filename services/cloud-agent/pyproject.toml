@@ -14,7 +14,7 @@ cloud-rag-agent = "cloud.agent.main:main"
 
 [project.optional-dependencies]
 milvus = ["pymilvus>=2.4,<3"]
-transport = ["msgpack>=1.0", "paho-mqtt>=2.0,<3"]
+transport = ["msgpack>=1.0", "kafka-python-ng>=2.2.2,<3"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

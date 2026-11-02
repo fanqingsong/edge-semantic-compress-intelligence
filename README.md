@@ -2,7 +2,7 @@
 
 An edge log compression and cloud RAG fault-analysis system. On the edge, rule filtering and a local small model distill logs. In the cloud, an operations knowledge base retrieves historical cases and produces root-cause analysis and remediation suggestions.
 
-The repository contains requirements, the technical design, per-service implementation notes, PRDs, and architecture decision records. The edge application lives in `services/edge-agent`. The cloud processes live in `services/cloud-agent`, `services/knowledge-ingest`, and `services/feedback-admin`. Inside the edge application, the business modules are filtering, summarization, transport, and the edge agent. Retrieval and RAG live in `libs/cloud`. The shared contract lives in `libs/shared`. A production CA and certificates, a real SLM, a running embedding model and cloud model, and automated prompt distribution are still to be deployed.
+The repository contains requirements, the technical design, per-service implementation notes, PRDs, and architecture decision records. The edge application lives in `services/edge-agent`. The cloud processes live in `services/cloud-agent`, `services/mqtt-kafka-bridge`, `services/knowledge-ingest`, and `services/feedback-admin`. Inside the edge application, the business modules are filtering, summarization, transport, and the edge agent. Retrieval and RAG live in `libs/cloud`. The shared contract lives in `libs/shared`. A production CA and certificates, a real SLM, a running embedding model and cloud model, and automated prompt distribution are still to be deployed.
 
 ## Architecture
 
@@ -10,7 +10,7 @@ The system diagnoses faults under limited bandwidth and edge compute. The edge c
 
 ### Deployment view
 
-The local topology is defined in [compose.yaml](compose.yaml). Fluent Bit reads the mounted log directory and receives syslog on UDP `5514`. After normalization it `POST`s to the [edge agent](docs/services/edge/agent.md). The edge agent listens on `8090` and internally calls filtering, summarization, and transport in order, then publishes events over MQTT `8883`. The [cloud agent](docs/services/cloud/agent.md) subscribes to the same topic, calls retrieval and RAG, and writes the local analysis store and feedback store. Milvus standalone mode depends on etcd and MinIO. [Knowledge ingestion](docs/services/cloud/knowledge.md) and [feedback](docs/services/cloud/feedback.md) review are separate processes on the Compose profile `tools`, and they do not stay up with the main path.
+The local topology is defined in [compose.yaml](compose.yaml). Fluent Bit reads the mounted log directory and receives syslog on UDP `5514`. After normalization it `POST`s to the [edge agent](docs/services/edge/agent.md). The edge agent listens on `8090` and internally calls filtering, summarization, and transport in order, then publishes events over MQTT `8883`. EMQX accepts that publish. The MQTT-to-Kafka bridge subscribes to `edge/events` and writes the same payload to Kafka topic `edge.events` after Kafka acknowledges it. The [cloud agent](docs/services/cloud/agent.md) consumes that Kafka topic, calls retrieval and RAG, and writes the local analysis store and feedback store. Milvus standalone mode depends on etcd and MinIO. [Knowledge ingestion](docs/services/cloud/knowledge.md) and [feedback](docs/services/cloud/feedback.md) review are separate processes on the Compose profile `tools`, and they do not stay up with the main path.
 
 ```mermaid
 flowchart LR
@@ -22,7 +22,8 @@ flowchart LR
 	end
 
 	subgraph Broker[Message plane]
-		Mosquitto[Mosquitto_mTLS_8883]
+		Emqx[EMQX_mTLS_8883]
+		Kafka[Kafka_edge.events]
 	end
 
 	subgraph CloudDeploy[Cloud]
@@ -36,8 +37,10 @@ flowchart LR
 
 	KnowledgeCli[knowledge-ingest] --> Milvus
 	FeedbackCli[prompt-feedback] --> FeedbackDb
-	Outbox -->|"QoS 1 / edge/events"| Mosquitto
-	Mosquitto --> CloudAgent
+	Outbox -->|"QoS 1 / edge/events"| Emqx
+	Emqx --> Bridge[mqtt-kafka-bridge]
+	Bridge --> Kafka
+	Kafka --> CloudAgent
 	CloudAgent --> AnalysisDb
 	CloudAgent --> FeedbackDb
 	CloudAgent --> Milvus
@@ -47,9 +50,9 @@ flowchart LR
 
 ### Services
 
-Responsibilities, boundaries, and code paths for each service are in the [service catalog](docs/services/README.md). There are four processes: `edge-log-agent`, `cloud-rag-agent`, `knowledge-ingest`, and `prompt-feedback`. Filtering, summarization, and transport are called by the edge agent. Retrieval and RAG are called by the cloud agent. Feedback has both online observation and a separate review process.
+Responsibilities, boundaries, and code paths for each service are in the [service catalog](docs/services/README.md). There are five processes: `edge-log-agent`, `mqtt-kafka-bridge`, `cloud-rag-agent`, `knowledge-ingest`, and `prompt-feedback`. Filtering, summarization, and transport are called by the edge agent. Retrieval and RAG are called by the cloud agent. Feedback has both online observation and a separate review process.
 
-The contract across the deployment boundary is [`EdgeEvent` in `shared`](docs/services/shared.md). Mosquitto provides mTLS and topic ACLs: `edge-agent` may only publish to `edge/events`, `cloud-agent` may only subscribe to it, and `healthcheck` may only read `$SYS/broker/uptime`.
+The contract across the deployment boundary is [`EdgeEvent` in `shared`](docs/services/shared.md). EMQX provides mTLS and topic ACLs: `edge-agent` may only publish to `edge/events`, `mqtt-kafka-bridge` may only subscribe to it, and `healthcheck` may only read `$SYS/#`.
 
 ### Online fault analysis
 

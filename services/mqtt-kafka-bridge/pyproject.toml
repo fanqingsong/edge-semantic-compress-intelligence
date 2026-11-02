@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mqtt-kafka-bridge"
+version = "0.1.0"
+description = "Forward edge MQTT events to Kafka after the broker accepts them"
+requires-python = ">=3.11"
+dependencies = [
+    "kafka-python-ng>=2.2.2,<3",
+    "paho-mqtt>=2.0,<3",
+]
+
+[project.scripts]
+mqtt-kafka-bridge = "bridge.main:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+namespaces = true

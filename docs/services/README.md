@@ -1,6 +1,6 @@
 # Service catalog
 
-The edge application is [`services/edge-agent`](../../services/edge-agent). The cloud processes are [`services/cloud-agent`](../../services/cloud-agent), [`services/knowledge-ingest`](../../services/knowledge-ingest), and [`services/feedback-admin`](../../services/feedback-admin). Each business module owns only its own code. Process entry points assemble modules and do not place another module's implementation in the same package. Retrieval and RAG live in [`libs/cloud`](../../libs/cloud). The contract shared by the applications lives in [`libs/shared`](../../libs/shared). This granularity rule is [ADR-0010](../adr/adr-0010-service-granularity.md).
+The edge application is [`services/edge-agent`](../../services/edge-agent). The cloud processes are [`services/cloud-agent`](../../services/cloud-agent), [`services/mqtt-kafka-bridge`](../../services/mqtt-kafka-bridge), [`services/knowledge-ingest`](../../services/knowledge-ingest), and [`services/feedback-admin`](../../services/feedback-admin). Each business module owns only its own code. Process entry points assemble modules and do not place another module's implementation in the same package. Retrieval and RAG live in [`libs/cloud`](../../libs/cloud). The contract shared by the applications lives in [`libs/shared`](../../libs/shared). This granularity rule is [ADR-0010](../adr/adr-0010-service-granularity.md).
 
 Requirements and acceptance criteria remain in the [PRD index](../prds/README.md). Technology choices and constraints remain in the [ADR index](../adr/README.md).
 
@@ -13,7 +13,7 @@ Requirements and acceptance criteria remain in the [PRD index](../prds/README.md
 | Transport | [`services/edge-agent/src/edge/transport`](../../services/edge-agent/src/edge/transport) | Called by the edge agent | [Transport](edge/transport.md) |
 | edge agent | [`services/edge-agent/src/edge/agent`](../../services/edge-agent/src/edge/agent) | Process `edge-log-agent` | [edge agent](edge/agent.md) |
 
-Fluent Bit collects logs. Its configuration is in [`deploy/fluent-bit`](../../deploy/fluent-bit). It is not one of these four Python services.
+Fluent Bit collects logs. Its configuration is in [`deploy/fluent-bit`](../../deploy/fluent-bit). It is not one of these Python services.
 
 ## Cloud
 
@@ -24,6 +24,7 @@ Fluent Bit collects logs. Its configuration is in [`deploy/fluent-bit`](../../de
 | RAG | [`libs/cloud/src/cloud/rag`](../../libs/cloud/src/cloud/rag) | Called by the cloud agent | [RAG](cloud/rag.md) |
 | Feedback | [`services/feedback-admin/src/cloud/feedback`](../../services/feedback-admin/src/cloud/feedback) | Process `prompt-feedback`; online observation is called by the cloud agent | [Feedback](cloud/feedback.md) |
 | cloud agent | [`services/cloud-agent/src/cloud/agent`](../../services/cloud-agent/src/cloud/agent) | Process `cloud-rag-agent` | [cloud agent](cloud/agent.md) |
+| MQTT-to-Kafka bridge | [`services/mqtt-kafka-bridge/src/bridge`](../../services/mqtt-kafka-bridge/src/bridge) | Process `mqtt-kafka-bridge` | Subscribes to `edge/events` and produces `edge.events` |
 
 ## Dependency direction
 
@@ -34,4 +35,5 @@ Fluent Bit collects logs. Its configuration is in [`deploy/fluent-bit`](../../de
 - Knowledge ingestion depends only on the vector-write interface of retrieval.
 - RAG uses the `RetrievedCase` type produced by retrieval.
 - Feedback reads the analysis result from RAG.
-- The cloud agent assembles retrieval, RAG, and feedback observation, and it owns MQTT consumption.
+- The cloud agent assembles retrieval, RAG, and feedback observation, and it owns Kafka consumption.
+- The MQTT-to-Kafka bridge owns the MQTT subscription. It does not decode events or run retrieval.

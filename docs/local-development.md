@@ -5,7 +5,7 @@ This page explains how to test and start each service. Service responsibilities 
 Python 3.11 or newer is required. The edge and cloud agents import LangGraph, so install `langgraph>=1,<2` before running tests. Tests that do not depend on external services can then be run directly:
 
 ```bash
-PYTHONPATH=services/edge-agent/src:services/cloud-agent/src:services/knowledge-ingest/src:services/feedback-admin/src:libs/cloud/src:libs/shared/src python3 -m unittest discover -s tests -v
+PYTHONPATH=services/edge-agent/src:services/cloud-agent/src:services/mqtt-kafka-bridge/src:services/knowledge-ingest/src:services/feedback-admin/src:libs/cloud/src:libs/shared/src python3 -m unittest discover -s tests -v
 ```
 
 Agent orchestration imports LangGraph, so install it before running the agent tests. When real services are required, install the optional dependencies and generate local development certificates first:
@@ -25,27 +25,27 @@ docker compose up -d --build --wait
 
 Fluent Bit reads `./examples/logs/*.jsonl` and listens for syslog on UDP `5514`, then `POST`s batches to the edge agent on `8090`. The development environment uses the mock summarizer by default. Set `EDGE_SUMMARIZER=llama_cpp` and configure `EDGE_LLAMA_URL` to call a local llama.cpp server. The SQLite outbox defaults to a 100 MiB limit and rejects new messages when full.
 
-MQTT uses mTLS on port `8883`. The edge agent certificate may only publish to `edge/events`. The cloud agent certificate may only subscribe to that topic. Anonymous and plaintext connections are not open. Development certificates are for local use only.
+MQTT uses mTLS on port `8883` against EMQX. Regenerate the development certificates after pulling this change so the broker certificate includes `DNS:emqx` and the bridge client certificate exists. The edge agent certificate may only publish to `edge/events`. The `mqtt-kafka-bridge` certificate may only subscribe to that topic. Anonymous and plaintext connections are not open. Development certificates are for local use only. The bridge writes the MessagePack payload to the Kafka topic `edge.events`, and the cloud agent consumes that topic. Kafka stays on the Compose network.
 
 Integration tests for transport and collection:
 
 ```bash
-RUN_MQTT_INTEGRATION=1 PYTHONPATH=services/edge-agent/src:services/cloud-agent/src:services/knowledge-ingest/src:services/feedback-admin/src:libs/cloud/src:libs/shared/src python3 -m unittest tests.test_mqtt_integration -v
-RUN_FLUENT_BIT_INTEGRATION=1 PYTHONPATH=services/edge-agent/src:services/cloud-agent/src:services/knowledge-ingest/src:services/feedback-admin/src:libs/cloud/src:libs/shared/src python3 -m unittest tests.test_fluentbit_integration -v
+RUN_MQTT_INTEGRATION=1 PYTHONPATH=services/edge-agent/src:services/cloud-agent/src:services/mqtt-kafka-bridge/src:services/knowledge-ingest/src:services/feedback-admin/src:libs/cloud/src:libs/shared/src python3 -m unittest tests.test_mqtt_integration -v
+RUN_FLUENT_BIT_INTEGRATION=1 PYTHONPATH=services/edge-agent/src:services/cloud-agent/src:services/mqtt-kafka-bridge/src:services/knowledge-ingest/src:services/feedback-admin/src:libs/cloud/src:libs/shared/src python3 -m unittest tests.test_fluentbit_integration -v
 ```
 
 Port backfill is taken only from an explicit port field or from log text that carries a port label.
 
 ## cloud agent
 
-The [cloud agent](services/cloud/agent.md) subscribes to edge events and calls [retrieval](services/cloud/retrieval.md) and [RAG](services/cloud/rag.md). It starts with the edge agent through the `docker compose up` command above. Milvus depends on etcd and MinIO.
+The [cloud agent](services/cloud/agent.md) consumes the Kafka topic `edge.events` and calls [retrieval](services/cloud/retrieval.md) and [RAG](services/cloud/rag.md). It starts with the edge agent through the `docker compose up` command above. Milvus depends on etcd and MinIO. The local stack runs one cloud agent replica.
 
 The development environment uses a mock embedding model and analysis model by default. Switch them with `CLOUD_EMBEDDING_MODE`, `CLOUD_EMBEDDING_URL`, `CLOUD_ANALYSIS_MODE`, and `CLOUD_ANALYSIS_URL`.
 
 Integration test for the retrieval adapter:
 
 ```bash
-RUN_MILVUS_INTEGRATION=1 PYTHONPATH=services/edge-agent/src:services/cloud-agent/src:services/knowledge-ingest/src:services/feedback-admin/src:libs/cloud/src:libs/shared/src python3 -m unittest tests.test_milvus_integration -v
+RUN_MILVUS_INTEGRATION=1 PYTHONPATH=services/edge-agent/src:services/cloud-agent/src:services/mqtt-kafka-bridge/src:services/knowledge-ingest/src:services/feedback-admin/src:libs/cloud/src:libs/shared/src python3 -m unittest tests.test_milvus_integration -v
 ```
 
 The integration test uses a temporary SQLite database and a unique Milvus collection, and it cleans them up when it finishes.

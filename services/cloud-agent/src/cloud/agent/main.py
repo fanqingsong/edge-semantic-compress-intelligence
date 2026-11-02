@@ -5,7 +5,7 @@ import logging
 import os
 
 from cloud.agent.consumer import (
-    MqttEventConsumer,
+    KafkaEventConsumer,
     SQLiteProcessedEventStore,
 )
 from cloud.agent.runtime import (
@@ -35,22 +35,19 @@ from cloud.retrieval.hybrid import (
     HybridRetriever,
 )
 from shared.codec import MessagePackCodec
-from shared.mqtt import (
-    configure_mtls,
-    create_mqtt_v5_client,
-)
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Consume edge events and run cloud RAG")
     parser.add_argument(
-        "--mqtt-host", default=os.environ.get("CLOUD_MQTT_HOST", "127.0.0.1")
+        "--kafka-bootstrap",
+        default=os.environ.get("CLOUD_KAFKA_BOOTSTRAP", "127.0.0.1:9092"),
     )
     parser.add_argument(
-        "--mqtt-port", type=int, default=int(os.environ.get("CLOUD_MQTT_PORT", "1883"))
+        "--kafka-topic", default=os.environ.get("CLOUD_KAFKA_TOPIC", "edge.events")
     )
     parser.add_argument(
-        "--topic", default=os.environ.get("CLOUD_MQTT_TOPIC", "edge/events")
+        "--kafka-group", default=os.environ.get("CLOUD_KAFKA_GROUP", "cloud-agent")
     )
     parser.add_argument(
         "--milvus-uri", default=os.environ.get("CLOUD_MILVUS_URI", "http://127.0.0.1:19530")
@@ -143,43 +140,59 @@ def main() -> None:
         analysis_store,
         PromptFeedbackService(feedback_store),
     )
-    consumer = MqttEventConsumer(
-        args.topic,
-        MessagePackCodec(),
-        processed_store,
-        handler,
-    )
-    mqtt_client = create_mqtt_v5_client(
-        os.environ.get("CLOUD_MQTT_CLIENT_ID", "cloud-rag-agent")
-    )
-    mqtt_client.reconnect_delay_set(min_delay=1, max_delay=30)
-    consumer.bind(mqtt_client)
-
-    ca_file = os.environ.get("CLOUD_MQTT_CA_FILE")
-    certificate_file = os.environ.get("CLOUD_MQTT_CERT_FILE")
-    key_file = os.environ.get("CLOUD_MQTT_KEY_FILE")
-    tls_files = (ca_file, certificate_file, key_file)
-    if any(tls_files) and not all(tls_files):
-        raise SystemExit("mTLS requires CA, client certificate, and client key files")
-    if all(tls_files):
-        configure_mtls(
-            mqtt_client,
-            ca_file=ca_file,
-            certificate_file=certificate_file,
-            key_file=key_file,
-        )
-
-    logging.info("cloud RAG consumer subscribing to %s", args.topic)
+    consumer = KafkaEventConsumer(MessagePackCodec(), processed_store, handler)
+    logging.info("cloud RAG consumer reading Kafka topic %s", args.kafka_topic)
     try:
-        mqtt_client.connect_async(args.mqtt_host, args.mqtt_port, keepalive=30)
-        mqtt_client.loop_forever(retry_first_connection=True)
+        consume_kafka(args, consumer)
     except KeyboardInterrupt:
         pass
     finally:
-        mqtt_client.disconnect()
         processed_store.close()
         feedback_store.close()
         milvus_client.close()
+
+
+def consume_kafka(args: argparse.Namespace, consumer: KafkaEventConsumer) -> None:
+    import time
+
+    from kafka import KafkaConsumer, OffsetAndMetadata, TopicPartition
+
+    kafka_consumer = KafkaConsumer(
+        args.kafka_topic,
+        bootstrap_servers=[
+            server.strip() for server in args.kafka_bootstrap.split(",") if server.strip()
+        ],
+        group_id=args.kafka_group,
+        enable_auto_commit=False,
+        auto_offset_reset="earliest",
+        max_poll_records=1,
+    )
+    try:
+        while True:
+            batches = kafka_consumer.poll(timeout_ms=1000)
+            retry = False
+            for topic_partition, records in batches.items():
+                for record in records:
+                    result = consumer.handle_payload(
+                        record.value,
+                        lambda record=record: kafka_consumer.commit(
+                            {
+                                TopicPartition(record.topic, record.partition): OffsetAndMetadata(
+                                    record.offset + 1, None
+                                )
+                            }
+                        ),
+                    )
+                    if result.disposition not in {"processed", "duplicate"}:
+                        kafka_consumer.seek(topic_partition, record.offset)
+                        retry = True
+                        break
+                if retry:
+                    break
+            if retry:
+                time.sleep(1)
+    finally:
+        kafka_consumer.close()
 
 
 if __name__ == "__main__":

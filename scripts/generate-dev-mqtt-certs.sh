@@ -41,15 +41,17 @@ issue_certificate() {
   rm -f "${name}.csr" "${extension_file}"
 }
 
-issue_certificate "broker" "serverAuth" "DNS:mosquitto,DNS:localhost,IP:127.0.0.1"
+issue_certificate "broker" "serverAuth" "DNS:emqx,DNS:localhost,IP:127.0.0.1"
 issue_certificate "edge-agent" "clientAuth"
 issue_certificate "cloud-agent" "clientAuth"
+issue_certificate "mqtt-kafka-bridge" "clientAuth"
 issue_certificate "healthcheck" "clientAuth"
 
 openssl verify -CAfile "${cert_dir}/ca.crt" \
   "${cert_dir}/broker.crt" \
   "${cert_dir}/edge-agent.crt" \
   "${cert_dir}/cloud-agent.crt" \
+  "${cert_dir}/mqtt-kafka-bridge.crt" \
   "${cert_dir}/healthcheck.crt"
 chmod 600 "${cert_dir}"/*.key
 chmod 644 "${cert_dir}"/*.crt

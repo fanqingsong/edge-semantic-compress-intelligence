@@ -2,7 +2,7 @@
 
 Code: [`services/edge-agent/src/edge/transport`](../../../services/edge-agent/src/edge/transport)
 
-Related: [PRD-03](../../prds/prd-03-secure-transport.md), [ADR-0004](../../adr/adr-0004-secure-transport.md)
+Related: [PRD-03](../../prds/prd-03-secure-transport.md), [ADR-0004](../../adr/adr-0004-secure-transport.md), [ADR-0011](../../adr/adr-0011-clustered-mqtt-kafka-bridge.md)
 
 ## Responsibilities
 
@@ -10,4 +10,4 @@ Encode `EdgeEvent` as MessagePack and publish it at QoS 1 to the default topic `
 
 While disconnected, events stay local and are retried after the connection returns. The outbox defaults to a 100 MiB limit. At the limit, new events are rejected and old records are not overwritten. The [edge agent](agent.md) returns HTTP 507 in that case.
 
-This service does not parse logs and does not call the summarization model. mTLS and topic ACLs are enforced by Mosquitto: the `edge-agent` certificate may only publish to `edge/events`.
+This service does not parse logs and does not call the summarization model. mTLS and topic ACLs are enforced by EMQX: the `edge-agent` certificate may only publish to `edge/events`. The cloud-side bridge certificate may only subscribe to that topic.

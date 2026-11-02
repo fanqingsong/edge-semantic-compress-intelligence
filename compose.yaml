@@ -6,7 +6,7 @@ services:
     environment:
       EDGE_HTTP_HOST: 0.0.0.0
       EDGE_HTTP_PORT: "8090"
-      EDGE_MQTT_HOST: mosquitto
+      EDGE_MQTT_HOST: emqx
       EDGE_MQTT_PORT: "8883"
       EDGE_MQTT_TOPIC: edge/events
       EDGE_OUTBOX_PATH: /var/lib/edge-agent/outbox.sqlite3
@@ -22,7 +22,9 @@ services:
       - ./deploy/mosquitto/certs/edge-agent.crt:/run/mqtt/edge-agent.crt:ro
       - ./deploy/mosquitto/certs/edge-agent.key:/run/mqtt/edge-agent.key:ro
     depends_on:
-      mosquitto:
+      emqx:
+        condition: service_healthy
+      mqtt-kafka-bridge:
         condition: service_healthy
     healthcheck:
       test:
@@ -53,9 +55,9 @@ services:
       context: .
       dockerfile: services/cloud-agent/Dockerfile
     environment:
-      CLOUD_MQTT_HOST: mosquitto
-      CLOUD_MQTT_PORT: "8883"
-      CLOUD_MQTT_TOPIC: edge/events
+      CLOUD_KAFKA_BOOTSTRAP: kafka:9092
+      CLOUD_KAFKA_TOPIC: edge.events
+      CLOUD_KAFKA_GROUP: cloud-agent
       CLOUD_MILVUS_URI: http://milvus:19530
       CLOUD_MILVUS_COLLECTION: ops_cases
       CLOUD_VECTOR_DIMENSION: "1024"
@@ -64,16 +66,10 @@ services:
       CLOUD_PROCESSED_DB: /var/lib/cloud/processed.sqlite3
       CLOUD_ANALYSIS_DB: /var/lib/cloud/analyses.sqlite3
       CLOUD_FEEDBACK_DB: /var/lib/cloud/feedback.sqlite3
-      CLOUD_MQTT_CA_FILE: /run/mqtt/ca.crt
-      CLOUD_MQTT_CERT_FILE: /run/mqtt/cloud-agent.crt
-      CLOUD_MQTT_KEY_FILE: /run/mqtt/cloud-agent.key
     volumes:
       - cloud_data:/var/lib/cloud
-      - ./deploy/mosquitto/certs/ca.crt:/run/mqtt/ca.crt:ro
-      - ./deploy/mosquitto/certs/cloud-agent.crt:/run/mqtt/cloud-agent.crt:ro
-      - ./deploy/mosquitto/certs/cloud-agent.key:/run/mqtt/cloud-agent.key:ro
     depends_on:
-      mosquitto:
+      kafka:
         condition: service_healthy
       milvus:
         condition: service_healthy
@@ -110,26 +106,97 @@ services:
     volumes:
       - cloud_data:/var/lib/cloud
 
-  mosquitto:
-    image: eclipse-mosquitto:2.0.20
-    entrypoint: ["/bin/sh", "/mosquitto/config/mosquitto-entrypoint.sh"]
+  emqx:
+    image: emqx/emqx:5.9.3
+    user: "0:0"
     ports:
       - "8883:8883"
+    environment:
+      EMQX_LISTENERS__TCP__DEFAULT__ENABLE: "false"
+      EMQX_LISTENERS__WS__DEFAULT__ENABLE: "false"
+      EMQX_LISTENERS__SSL__DEFAULT__ENABLE: "true"
+      EMQX_LISTENERS__SSL__DEFAULT__BIND: "0.0.0.0:8883"
+      EMQX_LISTENERS__SSL__DEFAULT__SSL_OPTIONS__VERIFY: verify_peer
+      EMQX_LISTENERS__SSL__DEFAULT__SSL_OPTIONS__FAIL_IF_NO_PEER_CERT: "true"
+      EMQX_LISTENERS__SSL__DEFAULT__SSL_OPTIONS__CACERTFILE: /opt/emqx/etc/certs/ca.crt
+      EMQX_LISTENERS__SSL__DEFAULT__SSL_OPTIONS__CERTFILE: /opt/emqx/etc/certs/broker.crt
+      EMQX_LISTENERS__SSL__DEFAULT__SSL_OPTIONS__KEYFILE: /opt/emqx/etc/certs/broker.key
+      EMQX_MQTT__PEER_CERT_AS_USERNAME: cn
+      EMQX_AUTHORIZATION__NO_MATCH: deny
+      EMQX_DASHBOARD__DEFAULT_PASSWORD: Emqx-dev-8883
     volumes:
-      - ./deploy/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
-      - ./deploy/mosquitto/aclfile:/mosquitto/config/aclfile:ro
-      - ./scripts/mosquitto-entrypoint.sh:/mosquitto/config/mosquitto-entrypoint.sh:ro
-      - ./deploy/mosquitto/certs:/run/mqtt-certs:ro
-      - mosquitto_runtime:/mosquitto/runtime
-      - mosquitto_data:/mosquitto/data
+      - ./deploy/emqx/acl.conf:/opt/emqx/etc/acl.conf:ro
+      - ./deploy/mosquitto/certs/ca.crt:/opt/emqx/etc/certs/ca.crt:ro
+      - ./deploy/mosquitto/certs/broker.crt:/opt/emqx/etc/certs/broker.crt:ro
+      - ./deploy/mosquitto/certs/broker.key:/opt/emqx/etc/certs/broker.key:ro
+      - emqx_data:/opt/emqx/data
+    healthcheck:
+      test: ["CMD", "/opt/emqx/bin/emqx", "ctl", "status"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 40s
+
+  kafka:
+    image: apache/kafka:3.9.1
+    hostname: kafka
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_NUM_PARTITIONS: 1
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+      CLUSTER_ID: 4L6g3nShT-eMCtK--X86sw
+    volumes:
+      - kafka_data:/var/lib/kafka/data
     healthcheck:
       test:
         - CMD-SHELL
-        - mosquitto_sub -h 127.0.0.1 -p 8883 --cafile /mosquitto/runtime/certs/ca.crt --cert /mosquitto/runtime/certs/healthcheck.crt --key /mosquitto/runtime/certs/healthcheck.key -t '$$SYS/broker/uptime' -C 1 -W 15 >/dev/null
-      interval: 20s
-      timeout: 18s
-      retries: 3
-      start_period: 20s
+        - /opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+
+  mqtt-kafka-bridge:
+    build:
+      context: .
+      dockerfile: services/mqtt-kafka-bridge/Dockerfile
+    environment:
+      BRIDGE_MQTT_HOST: emqx
+      BRIDGE_MQTT_PORT: "8883"
+      BRIDGE_MQTT_TOPIC: edge/events
+      BRIDGE_KAFKA_BOOTSTRAP: kafka:9092
+      BRIDGE_KAFKA_TOPIC: edge.events
+      BRIDGE_MQTT_CA_FILE: /run/mqtt/ca.crt
+      BRIDGE_MQTT_CERT_FILE: /run/mqtt/mqtt-kafka-bridge.crt
+      BRIDGE_MQTT_KEY_FILE: /run/mqtt/mqtt-kafka-bridge.key
+      BRIDGE_READY_FILE: /tmp/ready
+    volumes:
+      - ./deploy/mosquitto/certs/ca.crt:/run/mqtt/ca.crt:ro
+      - ./deploy/mosquitto/certs/mqtt-kafka-bridge.crt:/run/mqtt/mqtt-kafka-bridge.crt:ro
+      - ./deploy/mosquitto/certs/mqtt-kafka-bridge.key:/run/mqtt/mqtt-kafka-bridge.key:ro
+    depends_on:
+      emqx:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "test -f /tmp/ready"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 15s
+    restart: unless-stopped
 
   etcd:
     image: quay.io/coreos/etcd:v3.5.18
@@ -197,5 +264,5 @@ volumes:
   etcd_data:
   minio_data:
   milvus_data:
-  mosquitto_data:
-  mosquitto_runtime:
+  emqx_data:
+  kafka_data:

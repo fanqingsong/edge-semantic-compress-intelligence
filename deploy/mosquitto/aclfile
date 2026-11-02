@@ -1,8 +1,0 @@
-user edge-agent
-topic write edge/events
-
-user cloud-agent
-topic read edge/events
-
-user healthcheck
-topic read $SYS/broker/uptime
