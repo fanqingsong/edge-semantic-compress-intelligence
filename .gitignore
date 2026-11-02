@@ -12,4 +12,5 @@ htmlcov/
 *.sqlite3-wal
 /data/
 /examples/logs/*.jsonl
+!/examples/logs/payments-incident.jsonl
 /deploy/mosquitto/certs/
