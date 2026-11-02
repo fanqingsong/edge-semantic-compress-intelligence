@@ -1,6 +1,6 @@
 # RAG
 
-Code: [`services/cloud/src/cloud/rag`](../../../services/cloud/src/cloud/rag)
+Code: [`libs/cloud/src/cloud/rag`](../../../libs/cloud/src/cloud/rag)
 
 Related: [PRD-06](../../prds/prd-06-rag-analysis.md), [ADR-0007](../../adr/adr-0007-rag-platform.md)
 

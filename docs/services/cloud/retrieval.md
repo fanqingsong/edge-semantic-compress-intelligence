@@ -1,6 +1,6 @@
 # Retrieval
 
-Code: [`services/cloud/src/cloud/retrieval`](../../../services/cloud/src/cloud/retrieval)
+Code: [`libs/cloud/src/cloud/retrieval`](../../../libs/cloud/src/cloud/retrieval)
 
 Related: [PRD-05](../../prds/prd-05-hybrid-retrieval.md), [ADR-0006](../../adr/adr-0006-hybrid-retrieval.md)
 

@@ -2,7 +2,7 @@
 
 An edge log compression and cloud RAG fault-analysis system. On the edge, rule filtering and a local small model distill logs. In the cloud, an operations knowledge base retrieves historical cases and produces root-cause analysis and remediation suggestions.
 
-The repository contains requirements, the technical design, per-service implementation notes, PRDs, and architecture decision records. The two applications live in `services/edge` and `services/cloud`. Inside the edge application, the business modules are filtering, summarization, transport, and the edge agent. Inside the cloud application, they are knowledge ingestion, retrieval, RAG, feedback, and the cloud agent. The shared contract lives in `libs/shared`. A production CA and certificates, a real SLM, a running embedding model and cloud model, and automated prompt distribution are still to be deployed.
+The repository contains requirements, the technical design, per-service implementation notes, PRDs, and architecture decision records. The edge application lives in `services/edge-agent`. The cloud processes live in `services/cloud-agent`, `services/knowledge-ingest`, and `services/feedback-admin`. Inside the edge application, the business modules are filtering, summarization, transport, and the edge agent. Retrieval and RAG live in `libs/cloud`. The shared contract lives in `libs/shared`. A production CA and certificates, a real SLM, a running embedding model and cloud model, and automated prompt distribution are still to be deployed.
 
 ## Architecture
 

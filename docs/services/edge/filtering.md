@@ -1,6 +1,6 @@
 # Filtering
 
-Code: [`services/edge/src/edge/filtering`](../../../services/edge/src/edge/filtering)
+Code: [`services/edge-agent/src/edge/filtering`](../../../services/edge-agent/src/edge/filtering)
 
 Related: [PRD-01](../../prds/prd-01-edge-ingestion-filtering.md), [ADR-0002](../../adr/adr-0002-edge-collector.md)
 

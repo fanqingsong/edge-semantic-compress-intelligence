@@ -4,10 +4,11 @@ import json
 import os
 import sqlite3
 from contextlib import contextmanager
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Iterator
 
+from cloud.agent.graph import build_analysis_graph
 from cloud.feedback.service import (
     PromptFeedbackService,
 )
@@ -66,9 +67,18 @@ class RagEventHandler:
     rag_service: RagService
     analysis_store: SQLiteAnalysisStore
     feedback_service: PromptFeedbackService | None = None
+    _graph: object = field(init=False, repr=False, compare=False)
+
+    def __post_init__(self) -> None:
+        object.__setattr__(
+            self,
+            "_graph",
+            build_analysis_graph(
+                self.rag_service,
+                self.analysis_store,
+                self.feedback_service,
+            ),
+        )
 
     def __call__(self, event: EdgeEvent) -> None:
-        result = self.rag_service.analyze(event)
-        self.analysis_store.save(result)
-        if self.feedback_service is not None:
-            self.feedback_service.observe(event, result)
+        self._graph.invoke({"event": event})

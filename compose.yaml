@@ -2,7 +2,7 @@ services:
   edge-agent:
     build:
       context: .
-      dockerfile: services/edge/Dockerfile
+      dockerfile: services/edge-agent/Dockerfile
     environment:
       EDGE_HTTP_HOST: 0.0.0.0
       EDGE_HTTP_PORT: "8090"
@@ -51,7 +51,7 @@ services:
   cloud-agent:
     build:
       context: .
-      dockerfile: services/cloud/Dockerfile
+      dockerfile: services/cloud-agent/Dockerfile
     environment:
       CLOUD_MQTT_HOST: mosquitto
       CLOUD_MQTT_PORT: "8883"
@@ -83,8 +83,7 @@ services:
     profiles: ["tools"]
     build:
       context: .
-      dockerfile: services/cloud/Dockerfile
-    entrypoint: ["knowledge-ingest"]
+      dockerfile: services/knowledge-ingest/Dockerfile
     command:
       - --path
       - /var/lib/knowledge
@@ -106,8 +105,7 @@ services:
     profiles: ["tools"]
     build:
       context: .
-      dockerfile: services/cloud/Dockerfile
-    entrypoint: ["prompt-feedback"]
+      dockerfile: services/feedback-admin/Dockerfile
     command: ["--db", "/var/lib/cloud/feedback.sqlite3", "list"]
     volumes:
       - cloud_data:/var/lib/cloud

@@ -1,12 +1,12 @@
 # cloud agent
 
-Code: [`services/cloud/src/cloud/agent`](../../../services/cloud/src/cloud/agent)
+Code: [`services/cloud-agent/src/cloud/agent`](../../../services/cloud-agent/src/cloud/agent)
 
 Process: `cloud-rag-agent`. The Compose service name is `cloud-agent`.
 
 ## Responsibilities
 
-This is the long-running process on the cloud online path. It subscribes to `edge/events`, then calls:
+This is the long-running process on the cloud online path. It subscribes to `edge/events` and runs the following steps as a LangGraph state graph. ACK stays outside the graph. The external behavior is unchanged:
 
 1. [Retrieval](retrieval.md)
 2. [RAG](rag.md), writing the result to `analyses.sqlite3`

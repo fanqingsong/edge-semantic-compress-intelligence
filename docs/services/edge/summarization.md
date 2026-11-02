@@ -1,6 +1,6 @@
 # Summarization
 
-Code: [`services/edge/src/edge/summarization`](../../../services/edge/src/edge/summarization)
+Code: [`services/edge-agent/src/edge/summarization`](../../../services/edge-agent/src/edge/summarization)
 
 Related: [PRD-02](../../prds/prd-02-edge-summarization.md), [ADR-0003](../../adr/adr-0003-edge-slm-runtime.md)
 

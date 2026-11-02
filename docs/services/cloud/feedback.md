@@ -1,6 +1,6 @@
 # Feedback
 
-Code: [`services/cloud/src/cloud/feedback`](../../../services/cloud/src/cloud/feedback)
+Code: [`services/feedback-admin/src/cloud/feedback`](../../../services/feedback-admin/src/cloud/feedback)
 
 Process: `prompt-feedback`. The service name in the Compose profile `tools` is `feedback-admin`.
 

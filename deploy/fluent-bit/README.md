@@ -101,7 +101,7 @@ Compose 把仓库的 `examples/logs` 只读挂到容器的 `/var/log/edge`，把
 - 把样例 `.jsonl` 放到 `examples/logs/`，就是在喂这条 Input。
 - `tail.db` 在卷里，容器重建后偏移还在。删掉这个卷才会重新从头读。
 
-文件行应当已经是下游要的 JSON 对象，至少包含非空字符串 `timestamp`、`service`、`message`。可选字段是 `status_code`、`target_ip`、`target_port`、`error_code`。edge agent 的格式检查在 `services/edge/src/edge/filtering/service.py` 的 `LogRecord.from_json_line`。不符合的行会被过滤层以 `invalid_format` 丢掉，Fluent Bit 本身仍会把它发出去。
+文件行应当已经是下游要的 JSON 对象，至少包含非空字符串 `timestamp`、`service`、`message`。可选字段是 `status_code`、`target_ip`、`target_port`、`error_code`。edge agent 的格式检查在 `services/edge-agent/src/edge/filtering/service.py` 的 `LogRecord.from_json_line`。不符合的行会被过滤层以 `invalid_format` 丢掉，Fluent Bit 本身仍会把它发出去。
 
 ## Syslog 输入
 

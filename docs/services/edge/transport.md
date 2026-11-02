@@ -1,6 +1,6 @@
 # Transport
 
-Code: [`services/edge/src/edge/transport`](../../../services/edge/src/edge/transport)
+Code: [`services/edge-agent/src/edge/transport`](../../../services/edge-agent/src/edge/transport)
 
 Related: [PRD-03](../../prds/prd-03-secure-transport.md), [ADR-0004](../../adr/adr-0004-secure-transport.md)
 

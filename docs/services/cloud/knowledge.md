@@ -1,6 +1,6 @@
 # Knowledge ingestion
 
-Code: [`services/cloud/src/cloud/knowledge`](../../../services/cloud/src/cloud/knowledge)
+Code: [`services/knowledge-ingest/src/cloud/knowledge`](../../../services/knowledge-ingest/src/cloud/knowledge)
 
 Process: `knowledge-ingest`. The service name in the Compose profile `tools` is `knowledge-ingest`. It does not stay up on the online fault-analysis path.
 

@@ -1,12 +1,12 @@
 # edge agent
 
-Code: [`services/edge/src/edge/agent`](../../../services/edge/src/edge/agent)
+Code: [`services/edge-agent/src/edge/agent`](../../../services/edge-agent/src/edge/agent)
 
 Process: `edge-log-agent`. The Compose service name is `edge-agent`. It listens on `8090`.
 
 ## Responsibilities
 
-This is the only long-running process on the edge. It does not implement filtering, summarization, or transport rules. It calls them in order:
+This is the only long-running process on the edge. It does not implement filtering, summarization, or transport rules. A LangGraph state graph calls them in order, once per service after filtering. The HTTP interface is unchanged:
 
 1. [Filtering](filtering.md)
 2. [Summarization](summarization.md), one event per service

@@ -2,16 +2,16 @@
 
 This page explains how to test and start each service. Service responsibilities are in the [service catalog](services/README.md). The project overview is in the [README](../README.md).
 
-Python 3.11 or newer is required. Tests that do not depend on external services can be run directly:
+Python 3.11 or newer is required. The edge and cloud agents import LangGraph, so install `langgraph>=1,<2` before running tests. Tests that do not depend on external services can then be run directly:
 
 ```bash
-PYTHONPATH=services/edge/src:services/cloud/src:libs/shared/src python3 -m unittest discover -s tests -v
+PYTHONPATH=services/edge-agent/src:services/cloud-agent/src:services/knowledge-ingest/src:services/feedback-admin/src:libs/cloud/src:libs/shared/src python3 -m unittest discover -s tests -v
 ```
 
-When real services are required, install the optional dependencies and generate local development certificates first:
+Agent orchestration imports LangGraph, so install it before running the agent tests. When real services are required, install the optional dependencies and generate local development certificates first:
 
 ```bash
-python3 -m pip install -e '.[milvus,transport,documents]'
+python3 -m pip install 'langgraph>=1,<2' 'pymilvus>=2.4,<3' 'msgpack>=1.0' 'paho-mqtt>=2.0,<3' 'markitdown>=0.1.3,<0.2'
 bash scripts/generate-dev-mqtt-certs.sh
 ```
 
@@ -30,8 +30,8 @@ MQTT uses mTLS on port `8883`. The edge agent certificate may only publish to `e
 Integration tests for transport and collection:
 
 ```bash
-RUN_MQTT_INTEGRATION=1 PYTHONPATH=services/edge/src:services/cloud/src:libs/shared/src python3 -m unittest tests.test_mqtt_integration -v
-RUN_FLUENT_BIT_INTEGRATION=1 PYTHONPATH=services/edge/src:services/cloud/src:libs/shared/src python3 -m unittest tests.test_fluentbit_integration -v
+RUN_MQTT_INTEGRATION=1 PYTHONPATH=services/edge-agent/src:services/cloud-agent/src:services/knowledge-ingest/src:services/feedback-admin/src:libs/cloud/src:libs/shared/src python3 -m unittest tests.test_mqtt_integration -v
+RUN_FLUENT_BIT_INTEGRATION=1 PYTHONPATH=services/edge-agent/src:services/cloud-agent/src:services/knowledge-ingest/src:services/feedback-admin/src:libs/cloud/src:libs/shared/src python3 -m unittest tests.test_fluentbit_integration -v
 ```
 
 Port backfill is taken only from an explicit port field or from log text that carries a port label.
@@ -45,7 +45,7 @@ The development environment uses a mock embedding model and analysis model by de
 Integration test for the retrieval adapter:
 
 ```bash
-RUN_MILVUS_INTEGRATION=1 PYTHONPATH=services/edge/src:services/cloud/src:libs/shared/src python3 -m unittest tests.test_milvus_integration -v
+RUN_MILVUS_INTEGRATION=1 PYTHONPATH=services/edge-agent/src:services/cloud-agent/src:services/knowledge-ingest/src:services/feedback-admin/src:libs/cloud/src:libs/shared/src python3 -m unittest tests.test_milvus_integration -v
 ```
 
 The integration test uses a temporary SQLite database and a unique Milvus collection, and it cleans them up when it finishes.

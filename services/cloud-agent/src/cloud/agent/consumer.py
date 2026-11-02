@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 import sqlite3
 import threading
 from collections.abc import Callable
@@ -9,6 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterator, Protocol
 
+from cloud.agent.graph import build_consume_graph
 from shared.codec import MessageCodec
 from shared.contract import EdgeEvent
 
@@ -120,6 +120,7 @@ class MqttEventConsumer:
         self.store = store
         self.handler = handler
         self._lock = threading.Lock()
+        self._graph = build_consume_graph(codec, store, handler)
 
     def bind(self, client: Any) -> None:
         client.manual_ack_set(True)
@@ -152,35 +153,29 @@ class MqttEventConsumer:
 
     def handle_message(self, client: Any, delivery: MqttDelivery) -> ConsumeResult:
         try:
-            event = self.codec.decode(delivery.payload)
-        except Exception:
-            return ConsumeResult(disposition="invalid_payload")
-
-        payload_hash = hashlib.sha256(delivery.payload).hexdigest()
-        try:
             with self._lock:
-                previous_hash = self.store.payload_hash(event.event_id)
-                if previous_hash is not None:
-                    if previous_hash != payload_hash:
-                        return ConsumeResult(
-                            disposition="event_id_conflict",
-                            event_id=event.event_id,
-                        )
-                    disposition = "duplicate"
-                else:
-                    self.handler(event)
-                    self.store.mark_processed(event.event_id, payload_hash)
-                    disposition = "processed"
+                state = self._graph.invoke({"payload": delivery.payload})
         except Exception:
             return ConsumeResult(
                 disposition="processing_failed",
-                event_id=event.event_id,
+                event_id=self._event_id(delivery.payload),
             )
+
+        disposition = state["disposition"]
+        event_id = state.get("event_id")
+        if disposition not in {"processed", "duplicate"}:
+            return ConsumeResult(disposition=disposition, event_id=event_id)
 
         try:
             result = client.ack(delivery.mid, delivery.qos)
         except Exception:
-            return ConsumeResult(disposition="ack_failed", event_id=event.event_id)
+            return ConsumeResult(disposition="ack_failed", event_id=event_id)
         if result != 0:
-            return ConsumeResult(disposition="ack_failed", event_id=event.event_id)
-        return ConsumeResult(disposition=disposition, event_id=event.event_id)
+            return ConsumeResult(disposition="ack_failed", event_id=event_id)
+        return ConsumeResult(disposition=disposition, event_id=event_id)
+
+    def _event_id(self, payload: bytes) -> str | None:
+        try:
+            return self.codec.decode(payload).event_id
+        except Exception:
+            return None

@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "edge-agent"
+version = "0.1.0"
+description = "Edge log agent"
+requires-python = ">=3.11"
+dependencies = ["langgraph>=1,<2"]
+
+[project.scripts]
+edge-log-agent = "edge.agent.main:main"
+
+[project.optional-dependencies]
+transport = ["msgpack>=1.0", "paho-mqtt>=2.0,<3"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+namespaces = true
