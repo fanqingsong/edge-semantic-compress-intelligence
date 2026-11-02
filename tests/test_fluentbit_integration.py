@@ -69,7 +69,7 @@ class FluentBitIntegrationTests(unittest.TestCase):
             self.assertTrue(subscribed.wait(5), "MQTT subscribe timed out")
 
             syslog_message = (
-                "<14>1 2026-11-01T10:30:00Z host payments 123 ID47 - "
+                "<11>1 2026-11-01T10:30:00Z host payments 123 ID47 - "
                 "database timeout 192.0.2.10 port=5432 ERR-503"
             )
             with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sender:

@@ -2,7 +2,7 @@
 
 对照文件：[`fluent-bit.conf`](fluent-bit.conf)、[`normalize_syslog.lua`](normalize_syslog.lua)。
 
-镜像版本见 [`compose.yaml`](../../compose.yaml) 里的 `fluent/fluent-bit:3.2.10`。这份配置只负责采集和转发。规则过滤（L1–L4）在 edge agent 里，不在这里。
+镜像版本见 [`compose.yaml`](../../compose.yaml) 里的 `fluent/fluent-bit:3.2.10`。这份配置负责采集，并在转发前丢掉 `info` 级别。规则过滤（L1–L4）在 edge agent 里，不在这里。
 
 ## 这条流水线在做什么
 
@@ -12,7 +12,7 @@ Fluent Bit 按固定顺序处理一条日志：
 2. **Filter** 只处理标签匹配的事件，可以改写键值。
 3. **Output** 把标签匹配的事件发出去。
 
-本文件里有两条入口、一个过滤器、一个出口：
+本文件里有两条入口、两个过滤器、一个出口：
 
 ```text
 /var/log/edge/*.jsonl
@@ -24,11 +24,13 @@ UDP 5514 syslog                        │  lua 只匹配 edge.syslog
         │  syslog，标签 edge.syslog    │
         └──────────────► normalize ────┤
                                        ▼
+                          grep：丢掉 level 为 info 的事件
+                                       ▼
                           HTTP POST edge-agent:8090/v1/logs
                           正文是 JSON Lines，标签 edge.*
 ```
 
-`edge.file` 不经过 Lua。文件里的 JSON 被认为已经接近下游格式。`edge.syslog` 先被 Lua 收成同一套字段，再和文件日志一起送出。
+`edge.file` 不经过 Lua。文件里的 JSON 被认为已经接近下游格式。`edge.syslog` 先被 Lua 收成同一套字段，并带上 `level`。两条路径再一起经过级别过滤，然后送出。
 
 ## 配置文件怎么读
 
@@ -41,10 +43,10 @@ Fluent Bit 的主配置是若干个方括号段。段名是插件类型，段内
 | 段 | 用什么连接 | 本文件里的值 |
 |---|---|---|
 | `[INPUT]` | `Tag`，给事件贴标签 | `edge.file`、`edge.syslog` |
-| `[FILTER]` | `Match`，决定处理谁 | `edge.syslog` |
+| `[FILTER]` | `Match`，决定处理谁 | `edge.syslog`，然后 `edge.*` |
 | `[OUTPUT]` | `Match`，决定发送谁 | `edge.*` |
 
-`edge.*` 是通配。`edge.file` 和 `edge.syslog` 都会进入同一个 HTTP 输出。`edge.file` 对不上 `edge.syslog`，所以不会进 Lua。
+`edge.*` 是通配。`edge.file` 和 `edge.syslog` 都会进入级别过滤和同一个 HTTP 输出。`edge.file` 对不上 `edge.syslog`，所以不会进 Lua。
 
 ## `[SERVICE]`
 
@@ -101,7 +103,7 @@ Compose 把仓库的 `examples/logs` 只读挂到容器的 `/var/log/edge`，把
 - 把样例 `.jsonl` 放到 `examples/logs/`，就是在喂这条 Input。
 - `tail.db` 在卷里，容器重建后偏移还在。删掉这个卷才会重新从头读。
 
-文件行应当已经是下游要的 JSON 对象，至少包含非空字符串 `timestamp`、`service`、`message`。可选字段是 `status_code`、`target_ip`、`target_port`、`error_code`。edge agent 的格式检查在 `services/edge-agent/src/edge/filtering/service.py` 的 `LogRecord.from_json_line`。不符合的行会被过滤层以 `invalid_format` 丢掉，Fluent Bit 本身仍会把它发出去。
+文件行应当已经是下游要的 JSON 对象，至少包含非空字符串 `timestamp`、`service`、`message`。可选字段是 `level`、`status_code`、`target_ip`、`target_port`、`error_code`。`level` 为 `info` 或 `informational` 时，后面的 grep 过滤器会丢掉这一行，不会发给 edge agent。没有 `level` 的行会转发。edge agent 的格式检查在 `services/edge-agent/src/edge/filtering/service.py` 的 `LogRecord.from_json_line`。不符合的行会被过滤层以 `invalid_format` 丢掉，Fluent Bit 本身仍会把它发出去。
 
 ## Syslog 输入
 
@@ -149,7 +151,7 @@ Compose 把仓库的 `examples/logs` 只读挂到容器的 `/var/log/edge`，把
 return 1, timestamp, normalized
 ```
 
-第一个数是处理结果码。`1` 表示保留这条事件，并用第三个值替换原来的 `record`。返回 `0` 会丢掉这条事件。这里没有丢弃逻辑，过滤仍留给 edge agent。
+第一个数是处理结果码。`-1` 丢掉这条事件。`0` 保留原记录。`1` 用返回的时间戳和 `record` 替换原事件。`2` 只替换 `record`。这个脚本固定返回 `1`，不在这里丢弃。丢弃 `info` 交给后面的 grep。
 
 脚本把 syslog 字段收成和文件日志相同的形状：
 
@@ -158,15 +160,34 @@ return 1, timestamp, normalized
 | `timestamp` | 优先用记录里的 `time`。没有或是空字符串时，用事件时间戳格式化成 UTC 的 `YYYY-MM-DDTHH:MM:SSZ`。 |
 | `service` | `ident`，否则 `host`，再否则字面量 `syslog`。 |
 | `message` | `message`，否则 `msg`，再否则空字符串。 |
+| `level` | 已有的 `level` 或 `severity`，否则用 PRI 的低 3 位：0 emerg、1 alert、2 crit、3 error、4 warning、5 notice、6 info、7 debug。都没有时不写这个字段。 |
 | `status_code`、`target_ip`、`target_port`、`error_code` | 仅当解析结果里已经有同名键时才复制。 |
 
 标准 syslog 正文通常只落在 `message` 里，不会自动出现 `status_code` 这几个键。它们是为了和文件 JSON 的可选字段对齐；解析器没给出时，脚本不会凭空制造。
 
-未被复制的原始键（例如 `pid`、`msgid`）不会出现在送出的记录里，因为脚本返回的是一张新表，不是在原表上打补丁。
+未被复制的原始键（例如 `pid`、`msgid`、`pri`）不会出现在送出的记录里，因为脚本返回的是一张新表，不是在原表上打补丁。
+
+## Grep 过滤器：丢掉 info
+
+```32:36:deploy/fluent-bit/fluent-bit.conf
+# Drop info-level logs. Records with any other level, or with no level, are kept.
+[FILTER]
+    Name                      grep
+    Match                     edge.*
+    Exclude                   level ^(?i)(info|informational)$
+```
+
+| 键 | 含义 |
+|---|---|
+| `Name` | `grep` 按字段内容决定保留或丢弃，不改写其他字段。 |
+| `Match` | `edge.*`。文件日志和已经规范化的 syslog 都经过这里。 |
+| `Exclude` | 字段 `level` 整值匹配 `info` 或 `informational` 时丢掉该事件，大小写不敏感。`warning`、`error`、`debug`、`notice` 以及其他级别会继续送出。没有 `level` 的事件不匹配这条规则，也会送出。 |
+
+因此 Fluent Bit 发给 edge agent 的日志里，不会再有 info 级别。`debug` 比 info 更低，但仍会转发；若只要 warning 及以上，需要再收紧这条正则。
 
 ## HTTP 输出
 
-```32:42:deploy/fluent-bit/fluent-bit.conf
+```38:48:deploy/fluent-bit/fluent-bit.conf
 [OUTPUT]
     Name                      http
     Match                     edge.*
@@ -210,5 +231,6 @@ agent 对请求体还有限制：必须带 `Content-Length`，正文是 UTF-8，
 
 1. 先看两个 `Tag` 和一个 `Match edge.*`，确认文件日志和 syslog 在出口汇合。
 2. 再看 Lua 的 `Match edge.syslog`，确认只有 syslog 被改写。
-3. 打开 `normalize_syslog.lua`，对照脚本输出的三个必填字段和过滤模块要求的三个必填字段。
-4. 最后看 Compose 里的三个挂载：主配置、Lua 脚本、`examples/logs`。改配置后需要重建或重启 `fluent-bit` 容器，挂载的文件才会按容器启动时的内容被进程读到。
+3. 看紧随其后的 grep：`Match edge.*`，`Exclude level` 为 info。这是“只转发非 info 日志”的位置。
+4. 打开 `normalize_syslog.lua`，对照脚本输出的三个必填字段、`level`，以及过滤模块要求的三个必填字段。
+5. 最后看 Compose 里的三个挂载：主配置、Lua 脚本、`examples/logs`。改配置后需要重建或重启 `fluent-bit` 容器，挂载的文件才会按容器启动时的内容被进程读到。
