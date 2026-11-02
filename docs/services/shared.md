@@ -1,6 +1,6 @@
 # shared
 
-Code: [`shared`](../../src/edge_semantic_compress_intelligence/shared)
+Code: [`libs/shared/src/shared`](../../libs/shared/src/shared)
 
 `shared` holds cross-service contracts. It does not contain filtering, summarization, retrieval, or analysis logic.
 

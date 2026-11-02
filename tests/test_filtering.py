@@ -1,7 +1,7 @@
 import json
 import unittest
 
-from edge_semantic_compress_intelligence.services.edge.filtering import (
+from edge.filtering import (
     DropReason,
     FilterConfig,
     RuleFilter,

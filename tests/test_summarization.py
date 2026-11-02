@@ -2,8 +2,8 @@ import unittest
 from dataclasses import dataclass
 from typing import Mapping, Sequence
 
-from edge_semantic_compress_intelligence.services.edge.filtering import LogRecord
-from edge_semantic_compress_intelligence.services.edge.summarization import (
+from edge.filtering import LogRecord
+from edge.summarization import (
     DeterministicMockSummarizer,
     SummaryPipeline,
 )

@@ -1,6 +1,6 @@
 # Knowledge ingestion
 
-Code: [`services/cloud/knowledge`](../../../src/edge_semantic_compress_intelligence/services/cloud/knowledge)
+Code: [`services/cloud/src/cloud/knowledge`](../../../services/cloud/src/cloud/knowledge)
 
 Process: `knowledge-ingest`. The service name in the Compose profile `tools` is `knowledge-ingest`. It does not stay up on the online fault-analysis path.
 

@@ -1,6 +1,6 @@
 # edge agent
 
-Code: [`services/edge/agent`](../../../src/edge_semantic_compress_intelligence/services/edge/agent)
+Code: [`services/edge/src/edge/agent`](../../../services/edge/src/edge/agent)
 
 Process: `edge-log-agent`. The Compose service name is `edge-agent`. It listens on `8090`.
 

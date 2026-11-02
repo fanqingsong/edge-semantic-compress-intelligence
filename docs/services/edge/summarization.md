@@ -1,6 +1,6 @@
 # Summarization
 
-Code: [`services/edge/summarization`](../../../src/edge_semantic_compress_intelligence/services/edge/summarization)
+Code: [`services/edge/src/edge/summarization`](../../../services/edge/src/edge/summarization)
 
 Related: [PRD-02](../../prds/prd-02-edge-summarization.md), [ADR-0003](../../adr/adr-0003-edge-slm-runtime.md)
 

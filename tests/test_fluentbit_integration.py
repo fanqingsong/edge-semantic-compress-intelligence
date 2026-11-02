@@ -10,8 +10,8 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
-from edge_semantic_compress_intelligence.shared.codec import MessagePackCodec
-from edge_semantic_compress_intelligence.shared.mqtt import (
+from shared.codec import MessagePackCodec
+from shared.mqtt import (
     configure_mtls,
     create_mqtt_v5_client,
 )

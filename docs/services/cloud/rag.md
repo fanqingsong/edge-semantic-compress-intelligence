@@ -1,6 +1,6 @@
 # RAG
 
-Code: [`services/cloud/rag`](../../../src/edge_semantic_compress_intelligence/services/cloud/rag)
+Code: [`services/cloud/src/cloud/rag`](../../../services/cloud/src/cloud/rag)
 
 Related: [PRD-06](../../prds/prd-06-rag-analysis.md), [ADR-0007](../../adr/adr-0007-rag-platform.md)
 

@@ -1,6 +1,6 @@
 # Feedback
 
-Code: [`services/cloud/feedback`](../../../src/edge_semantic_compress_intelligence/services/cloud/feedback)
+Code: [`services/cloud/src/cloud/feedback`](../../../services/cloud/src/cloud/feedback)
 
 Process: `prompt-feedback`. The service name in the Compose profile `tools` is `feedback-admin`.
 

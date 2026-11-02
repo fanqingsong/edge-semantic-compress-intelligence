@@ -1,6 +1,6 @@
 # cloud agent
 
-Code: [`services/cloud/agent`](../../../src/edge_semantic_compress_intelligence/services/cloud/agent)
+Code: [`services/cloud/src/cloud/agent`](../../../services/cloud/src/cloud/agent)
 
 Process: `cloud-rag-agent`. The Compose service name is `cloud-agent`.
 

@@ -5,13 +5,13 @@ import unittest
 from typing import Any
 from unittest.mock import patch
 
-from edge_semantic_compress_intelligence.services.edge.filtering import LogRecord
-from edge_semantic_compress_intelligence.services.edge.summarization.slm import (
+from edge.filtering import LogRecord
+from edge.summarization.slm import (
     LlamaCppServerConfig,
     LlamaCppSummarizer,
     SummarizationError,
 )
-from edge_semantic_compress_intelligence.services.edge.summarization import SummaryPipeline
+from edge.summarization import SummaryPipeline
 
 
 class FakeResponse:

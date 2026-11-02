@@ -2,7 +2,7 @@
 
 **Original requirements:** E-01, E-02
 
-**Service:** [Filtering](../services/edge/filtering.md). Collection configuration is in `deploy/fluent-bit`. Rule filtering is in `services/edge/filtering`.
+**Service:** [Filtering](../services/edge/filtering.md). Collection configuration is in `deploy/fluent-bit`. Rule filtering is in `services/edge/src/edge/filtering`.
 
 ## Goal
 

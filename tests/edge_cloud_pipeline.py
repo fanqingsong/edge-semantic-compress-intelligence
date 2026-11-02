@@ -4,10 +4,10 @@ from collections import defaultdict
 from collections.abc import Iterable
 from dataclasses import dataclass
 
-from edge_semantic_compress_intelligence.shared.contract import EdgeEvent
-from edge_semantic_compress_intelligence.services.edge.filtering import DropReason, RuleFilter
-from edge_semantic_compress_intelligence.services.cloud.rag import RagResult, RagService
-from edge_semantic_compress_intelligence.services.edge.summarization import SummaryPipeline
+from shared.contract import EdgeEvent
+from edge.filtering import DropReason, RuleFilter
+from cloud.rag import RagResult, RagService
+from edge.summarization import SummaryPipeline
 
 
 @dataclass(frozen=True, slots=True)

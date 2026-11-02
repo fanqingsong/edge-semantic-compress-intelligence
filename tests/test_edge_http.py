@@ -7,18 +7,18 @@ import urllib.error
 import urllib.request
 from dataclasses import dataclass, field
 
-from edge_semantic_compress_intelligence.shared.contract import EdgeEvent
-from edge_semantic_compress_intelligence.services.edge.agent.http import (
+from shared.contract import EdgeEvent
+from edge.agent.http import (
     EdgeHttpConfig,
     create_edge_server,
 )
-from edge_semantic_compress_intelligence.services.edge.agent.runtime import EdgeRuntime
-from edge_semantic_compress_intelligence.services.edge.filtering import RuleFilter
-from edge_semantic_compress_intelligence.services.edge.summarization import (
+from edge.agent.runtime import EdgeRuntime
+from edge.filtering import RuleFilter
+from edge.summarization import (
     DeterministicMockSummarizer,
     SummaryPipeline,
 )
-from edge_semantic_compress_intelligence.services.edge.transport import FlushReport
+from edge.transport import FlushReport
 
 
 @dataclass

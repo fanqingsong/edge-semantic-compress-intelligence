@@ -2,9 +2,9 @@ import unittest
 from dataclasses import dataclass, field
 from typing import Mapping, Sequence
 
-from edge_semantic_compress_intelligence.shared.contract import EdgeEvent
-from edge_semantic_compress_intelligence.services.cloud.rag import RetrievedCase
-from edge_semantic_compress_intelligence.services.cloud.retrieval import (
+from shared.contract import EdgeEvent
+from cloud.rag import RetrievedCase
+from cloud.retrieval import (
     HybridRetriever,
     VectorHit,
 )

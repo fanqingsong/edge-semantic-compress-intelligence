@@ -5,7 +5,7 @@ This page explains how to test and start each service. Service responsibilities 
 Python 3.11 or newer is required. Tests that do not depend on external services can be run directly:
 
 ```bash
-PYTHONPATH=src python3 -m unittest discover -s tests -v
+PYTHONPATH=services/edge/src:services/cloud/src:libs/shared/src python3 -m unittest discover -s tests -v
 ```
 
 When real services are required, install the optional dependencies and generate local development certificates first:
@@ -30,8 +30,8 @@ MQTT uses mTLS on port `8883`. The edge agent certificate may only publish to `e
 Integration tests for transport and collection:
 
 ```bash
-RUN_MQTT_INTEGRATION=1 PYTHONPATH=src python3 -m unittest tests.test_mqtt_integration -v
-RUN_FLUENT_BIT_INTEGRATION=1 PYTHONPATH=src python3 -m unittest tests.test_fluentbit_integration -v
+RUN_MQTT_INTEGRATION=1 PYTHONPATH=services/edge/src:services/cloud/src:libs/shared/src python3 -m unittest tests.test_mqtt_integration -v
+RUN_FLUENT_BIT_INTEGRATION=1 PYTHONPATH=services/edge/src:services/cloud/src:libs/shared/src python3 -m unittest tests.test_fluentbit_integration -v
 ```
 
 Port backfill is taken only from an explicit port field or from log text that carries a port label.
@@ -45,7 +45,7 @@ The development environment uses a mock embedding model and analysis model by de
 Integration test for the retrieval adapter:
 
 ```bash
-RUN_MILVUS_INTEGRATION=1 PYTHONPATH=src python3 -m unittest tests.test_milvus_integration -v
+RUN_MILVUS_INTEGRATION=1 PYTHONPATH=services/edge/src:services/cloud/src:libs/shared/src python3 -m unittest tests.test_milvus_integration -v
 ```
 
 The integration test uses a temporary SQLite database and a unique Milvus collection, and it cleans them up when it finishes.
