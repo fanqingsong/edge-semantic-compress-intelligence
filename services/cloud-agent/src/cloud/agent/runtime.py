@@ -52,6 +52,7 @@ class SQLiteAnalysisStore:
     @contextmanager
     def _connect(self) -> Iterator[sqlite3.Connection]:
         connection = sqlite3.connect(self.path, timeout=5.0)
+        connection.execute("PRAGMA journal_mode=WAL")
         try:
             with connection:
                 yield connection

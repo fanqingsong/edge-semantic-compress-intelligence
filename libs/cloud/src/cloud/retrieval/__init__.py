@@ -9,6 +9,7 @@ from cloud.retrieval.adapters import (
 )
 from cloud.retrieval.hybrid import (
     HybridRetriever,
+    ListedCase,
     RetrievedCase,
     TextEmbedder,
     VectorHit,
@@ -20,6 +21,7 @@ __all__ = [
     "BgeM3HttpEmbedder",
     "EmbeddingServiceError",
     "HybridRetriever",
+    "ListedCase",
     "MilvusSchemaError",
     "MilvusVectorIndex",
     "RetrievedCase",

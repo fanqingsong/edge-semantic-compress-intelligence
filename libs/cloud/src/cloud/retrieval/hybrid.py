@@ -20,6 +20,15 @@ class RetrievedCase:
 
 
 @dataclass(frozen=True, slots=True)
+class ListedCase:
+    case_id: str
+    summary: str
+    resolution: str
+    source: str
+    target_ip: str | None
+
+
+@dataclass(frozen=True, slots=True)
 class VectorHit:
     case_id: str
     summary: str

@@ -2,7 +2,7 @@
 
 An edge log compression and cloud RAG fault-analysis system. On the edge, rule filtering and a local small model distill logs. In the cloud, an operations knowledge base retrieves historical cases and produces root-cause analysis and remediation suggestions.
 
-The repository contains requirements, the technical design, per-service implementation notes, PRDs, and architecture decision records. The edge application lives in `services/edge-agent`. The cloud processes live in `services/cloud-agent`, `services/mqtt-kafka-bridge`, and `services/knowledge-ingest`. Inside the edge application, the business modules are filtering, summarization, transport, and the edge agent. Retrieval and RAG live in `libs/cloud`. The shared contract lives in `libs/shared`. A real SLM, a running embedding model and cloud model, and automated prompt distribution are still to be deployed.
+The repository contains requirements, the technical design, per-service implementation notes, PRDs, and architecture decision records. The edge application lives in `services/edge-agent`. The cloud processes live in `services/cloud-agent`, `services/admin`, `services/mqtt-kafka-bridge`, and `services/knowledge-ingest`. Inside the edge application, the business modules are filtering, summarization, transport, and the edge agent. Retrieval and RAG live in `libs/cloud`. The shared contract lives in `libs/shared`. A real SLM, a running embedding model and cloud model, and automated prompt distribution are still to be deployed.
 
 ## Architecture
 
@@ -28,6 +28,7 @@ flowchart LR
 
 	subgraph CloudDeploy[Cloud]
 		CloudAgent[CloudAgent]
+		Admin[Admin_8088]
 		AnalysisDb[Analysis store_SQLite]
 		Milvus[Milvus_ops_cases]
 		Etcd[etcd]
@@ -41,13 +42,16 @@ flowchart LR
 	Kafka --> CloudAgent
 	CloudAgent --> AnalysisDb
 	CloudAgent --> Milvus
+	Admin -->|read-only| AnalysisDb
+	Admin --> Milvus
+	Admin -->|"GET /v1/status"| EdgeAgent
 	Milvus --> Etcd
 	Milvus --> Minio
 ```
 
 ### Services
 
-Responsibilities, boundaries, and code paths for each service are in the [service catalog](docs/services/README.md). There are four processes: `edge-log-agent`, `mqtt-kafka-bridge`, `cloud-rag-agent`, and `knowledge-ingest`. Filtering, summarization, and transport are called by the edge agent. Retrieval and RAG are called by the cloud agent.
+Responsibilities, boundaries, and code paths for each service are in the [service catalog](docs/services/README.md). There are five processes: `edge-log-agent`, `mqtt-kafka-bridge`, `cloud-rag-agent`, `cloud-admin`, and `knowledge-ingest`. Filtering, summarization, and transport are called by the edge agent. Retrieval and RAG are called by the cloud agent.
 
 The contract across the deployment boundary is [`EdgeEvent` in `shared`](docs/services/shared.md). EMQX listens on plaintext MQTT `1883` and enforces topic ACLs by MQTT username: `edge-agent` may only publish to `edge/events`, and `mqtt-kafka-bridge` may only subscribe to it.
 
@@ -97,7 +101,7 @@ The [transport service](docs/services/edge/transport.md) provides at-least-once 
 
 ### Implementation status
 
-Implemented: filtering, summarization, transport, the edge agent, knowledge ingestion, retrieval, RAG, and the cloud agent. Fluent Bit file and syslog configuration is included.
+Implemented: filtering, summarization, transport, the edge agent, knowledge ingestion, retrieval, RAG, the cloud agent, and the admin console. Fluent Bit file and syslog configuration is included.
 
 Still to deploy: distribution and rollback of approved prompts, and Prometheus metrics for the pre-filter. Local Compose sets SiliconFlow through `SILICONFLOW_BASE_URL`, `SILICONFLOW_API_KEY`, and the edge, embedding, and analysis model names. Kafka, Elasticsearch, and LlamaIndex remain candidates in the ADRs and are off the current runtime path.
 

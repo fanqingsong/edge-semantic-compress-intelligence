@@ -184,3 +184,6 @@ class ReliableMqttTransport:
             published += 1
         pending_count, _ = self.outbox.usage()
         return FlushReport(published=published, pending=pending_count)
+
+    def usage(self) -> tuple[int, int]:
+        return self.outbox.usage()

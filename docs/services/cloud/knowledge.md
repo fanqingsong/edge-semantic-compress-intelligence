@@ -15,4 +15,4 @@ Read operations documents or historical cases, parse them into cases that carry 
 - Embeddings use `SILICONFLOW_BASE_URL`, `CLOUD_EMBEDDING_MODEL` (`BAAI/bge-m3`), and `SILICONFLOW_API_KEY`.
 - The IP field used at ingestion is the same field used by the online retrieval filter.
 
-Samples are in [examples/knowledge](../../../examples/knowledge/README.md). The import command is in [local development](../../local-development.md).
+Samples are in [examples/knowledge](../../../examples/knowledge/README.md). The import command is in [local development](../../local-development.md). The [admin console](admin.md) uploads one document through this same ingestor.

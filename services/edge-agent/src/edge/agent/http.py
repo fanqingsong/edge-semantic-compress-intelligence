@@ -4,6 +4,7 @@ import json
 from dataclasses import dataclass
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Type
+from urllib.parse import urlsplit
 
 from edge.agent.runtime import EdgeRuntime
 from edge.transport.outbox import OutboxFullError
@@ -32,10 +33,30 @@ def create_edge_server(
         server_version = "EdgeLogAgent/0.1"
 
         def do_GET(self) -> None:
-            if self.path != "/healthz":
-                self._send_json(404, {"error": "not_found"})
+            path = urlsplit(self.path).path
+            if path == "/healthz":
+                self._send_json(200, {"status": "ok"})
                 return
-            self._send_json(200, {"status": "ok"})
+            if path == "/v1/status":
+                self._send_status()
+                return
+            self._send_json(404, {"error": "not_found"})
+
+        def _send_status(self) -> None:
+            usage = getattr(runtime.transport, "usage", None)
+            if not callable(usage):
+                self._send_json(503, {"error": "status_unavailable"})
+                return
+            try:
+                pending_count, pending_bytes = usage()
+                body = {
+                    "pending_count": int(pending_count),
+                    "pending_bytes": int(pending_bytes),
+                }
+            except (TypeError, ValueError):
+                self._send_json(503, {"error": "status_unavailable"})
+                return
+            self._send_json(200, body)
 
         def do_POST(self) -> None:
             if self.path != "/v1/logs":

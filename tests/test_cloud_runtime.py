@@ -1,3 +1,4 @@
+import sqlite3
 import tempfile
 import unittest
 from pathlib import Path
@@ -36,6 +37,8 @@ class CloudRuntimeTests(unittest.TestCase):
             self.assertEqual(
                 result["answer"]["root_cause"], "Likely connection saturation"
             )
+            journal_mode = sqlite3.connect(store.path).execute("PRAGMA journal_mode").fetchone()
+            self.assertEqual(journal_mode[0], "wal")
 
 
 if __name__ == "__main__":

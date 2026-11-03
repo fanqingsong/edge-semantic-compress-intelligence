@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import json
+import tempfile
 import threading
 import unittest
 import urllib.error
 import urllib.request
 from dataclasses import dataclass, field
+from pathlib import Path
 
 from shared.contract import EdgeEvent
 from edge.agent.http import (
@@ -17,6 +19,7 @@ from edge.filtering import RuleFilter
 from edge.summarization import SummaryPipeline
 from tests.standins import LogBatchSummarizer
 from edge.transport import FlushReport
+from edge.transport.outbox import SQLiteOutbox
 
 
 @dataclass
@@ -27,6 +30,17 @@ class RecordingTransport:
     def submit(self, event: EdgeEvent) -> FlushReport:
         self.events.append(event)
         return FlushReport(published=1 - self.pending, pending=self.pending)
+
+
+class OutboxStatusTransport:
+    def __init__(self, outbox: SQLiteOutbox) -> None:
+        self.outbox = outbox
+
+    def submit(self, event: EdgeEvent) -> FlushReport:
+        raise AssertionError("status does not submit events")
+
+    def usage(self) -> tuple[int, int]:
+        return self.outbox.usage()
 
 
 class EdgeHttpTests(unittest.TestCase):
@@ -128,6 +142,46 @@ class EdgeHttpTests(unittest.TestCase):
 
         self.assertEqual(response.status, 200)
         self.assertEqual(result["status"], "ok")
+
+    def test_status_is_unavailable_without_outbox_usage(self) -> None:
+        with self.assertRaises(urllib.error.HTTPError) as error:
+            response = urllib.request.urlopen(f"{self.base_url}/v1/status", timeout=2)
+            response.close()
+
+        error.exception.close()
+        self.assertEqual(error.exception.code, 503)
+
+    def test_status_returns_outbox_counts_without_payload(self) -> None:
+        secret = b"raw-log-secret-do-not-leak"
+        with tempfile.TemporaryDirectory() as directory:
+            outbox = SQLiteOutbox(str(Path(directory) / "outbox.sqlite3"))
+            outbox.enqueue("event-1", "edge/events", secret)
+            runtime = EdgeRuntime(
+                RuleFilter(),
+                SummaryPipeline(LogBatchSummarizer()),
+                OutboxStatusTransport(outbox),
+            )
+            server = create_edge_server(
+                runtime, EdgeHttpConfig(host="127.0.0.1", port=0)
+            )
+            thread = threading.Thread(target=server.serve_forever, daemon=True)
+            thread.start()
+            try:
+                with urllib.request.urlopen(
+                    f"http://127.0.0.1:{server.server_port}/v1/status", timeout=2
+                ) as response:
+                    raw = response.read()
+                    result = json.loads(raw)
+            finally:
+                server.shutdown()
+                server.server_close()
+                thread.join(timeout=2)
+                outbox.close()
+
+        self.assertEqual(set(result), {"pending_count", "pending_bytes"})
+        self.assertEqual(result["pending_count"], 1)
+        self.assertGreater(result["pending_bytes"], len(secret))
+        self.assertNotIn(secret, raw)
 
 
 if __name__ == "__main__":

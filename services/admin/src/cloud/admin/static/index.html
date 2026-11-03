@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cloud admin</title>
+  <link rel="stylesheet" href="/assets/app.css">
+</head>
+<body>
+  <header class="top">
+    <div>
+      <p class="eyebrow">Edge compress / cloud RAG</p>
+      <h1>Operator console</h1>
+    </div>
+    <button id="sign-out" type="button" hidden>Sign out</button>
+  </header>
+
+  <section id="login" class="panel login">
+    <h2>Sign in</h2>
+    <p>Enter the admin token from the server environment. It stays in this browser tab.</p>
+    <form id="login-form">
+      <label for="token">Admin token</label>
+      <input id="token" name="token" type="password" autocomplete="current-password" required>
+      <button type="submit">Continue</button>
+      <p id="login-error" class="error" hidden></p>
+    </form>
+  </section>
+
+  <div id="app" hidden>
+    <nav class="nav">
+      <button type="button" data-view="overview" class="active">Overview</button>
+      <button type="button" data-view="analyses">Analyses</button>
+      <button type="button" data-view="knowledge">Knowledge</button>
+    </nav>
+
+    <section id="overview" class="panel">
+      <div class="section-head">
+        <h2>Overview</h2>
+        <button id="refresh-status" type="button">Refresh</button>
+      </div>
+      <div id="status-grid" class="grid"></div>
+      <p id="status-error" class="error" hidden></p>
+    </section>
+
+    <section id="analyses" class="panel" hidden>
+      <div class="section-head">
+        <h2>Analyses</h2>
+        <button id="refresh-analyses" type="button">Refresh</button>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>When</th>
+            <th>Event</th>
+            <th>Root cause</th>
+            <th>Cases</th>
+          </tr>
+        </thead>
+        <tbody id="analysis-rows"></tbody>
+      </table>
+      <button id="older-analyses" type="button" hidden>Older</button>
+      <article id="analysis-detail" hidden></article>
+      <p id="analysis-error" class="error" hidden></p>
+    </section>
+
+    <section id="knowledge" class="panel" hidden>
+      <div class="section-head">
+        <h2>Knowledge</h2>
+      </div>
+      <form id="case-filter" class="filters">
+        <label>Target IP <input id="filter-ip" name="target_ip" placeholder="192.0.2.10"></label>
+        <label>Source <input id="filter-source" name="source" placeholder="incident.md"></label>
+        <button type="submit">Search</button>
+      </form>
+      <table>
+        <thead>
+          <tr>
+            <th>Case</th>
+            <th>Target IP</th>
+            <th>Source</th>
+            <th>Summary</th>
+            <th>Resolution</th>
+          </tr>
+        </thead>
+        <tbody id="case-rows"></tbody>
+      </table>
+      <form id="upload-form" class="upload">
+        <h3>Import a document</h3>
+        <p>Uploading the same filename again replaces older cases from that source. The file limit is 20 MiB.</p>
+        <input id="upload-file" type="file" accept=".md,.markdown,.txt,.jsonl,.pdf,.docx,.pptx,.html,.htm" required>
+        <button type="submit">Upload and import</button>
+        <p id="job-status"></p>
+      </form>
+      <p id="knowledge-error" class="error" hidden></p>
+    </section>
+  </div>
+  <script src="/assets/app.js"></script>
+</body>
+</html>

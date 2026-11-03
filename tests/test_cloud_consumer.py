@@ -1,4 +1,5 @@
 import json
+import sqlite3
 import tempfile
 import unittest
 from dataclasses import dataclass, field
@@ -256,6 +257,8 @@ class MqttEventConsumerTests(unittest.TestCase):
             self.addCleanup(restarted.close)
 
             self.assertEqual(restarted.payload_hash("event-1"), "payload-hash")
+            journal_mode = sqlite3.connect(path).execute("PRAGMA journal_mode").fetchone()
+            self.assertEqual(journal_mode[0], "wal")
 
 
 if __name__ == "__main__":

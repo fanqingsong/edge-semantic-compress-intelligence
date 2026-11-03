@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from cloud.retrieval.hybrid import (
+    ListedCase,
     VectorHit,
     VectorRecord,
 )
@@ -186,6 +187,60 @@ class MilvusVectorIndex:
             except (KeyError, TypeError, ValueError):
                 continue
         return tuple(hits)
+
+    def list_cases(
+        self,
+        *,
+        target_ip: str | None = None,
+        source: str | None = None,
+        limit: int = 50,
+    ) -> tuple[ListedCase, ...]:
+        if limit < 1 or limit > 200:
+            raise ValueError("limit must be between 1 and 200")
+        filters: list[str] = []
+        if target_ip is not None:
+            if not str(target_ip).strip():
+                raise ValueError("target_ip must not be empty")
+            normalized_ip = str(ipaddress.ip_address(target_ip))
+            filters.append(f"target_ip == {json.dumps(normalized_ip)}")
+        if source is not None:
+            if not str(source).strip():
+                raise ValueError("source must not be empty")
+            filters.append(f"source == {json.dumps(source)}")
+        response = self.client.query(
+            collection_name=self.collection_name,
+            filter=" and ".join(filters) if filters else 'case_id != ""',
+            output_fields=["case_id", "summary", "resolution", "source", "target_ip"],
+            limit=limit,
+        )
+        rows = response if isinstance(response, Sequence) and not isinstance(response, (str, bytes)) else ()
+        listed: list[ListedCase] = []
+        for item in rows:
+            if not isinstance(item, Mapping):
+                continue
+            entity = item.get("entity", item)
+            if not isinstance(entity, Mapping):
+                continue
+            try:
+                raw_ip = entity.get("target_ip")
+                listed.append(
+                    ListedCase(
+                        case_id=str(entity["case_id"]),
+                        summary=str(entity["summary"]),
+                        resolution=str(entity["resolution"]),
+                        source=str(entity["source"]),
+                        target_ip=None if raw_ip in (None, "") else str(raw_ip),
+                    )
+                )
+            except (KeyError, TypeError):
+                continue
+        return tuple(listed)
+
+    def count_cases(self) -> int:
+        stats = self.client.get_collection_stats(collection_name=self.collection_name)
+        if isinstance(stats, Mapping):
+            return int(stats.get("row_count", 0))
+        return int(getattr(stats, "row_count", 0))
 
 
 def ensure_milvus_collection(

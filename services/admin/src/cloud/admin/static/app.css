@@ -1,0 +1,188 @@
+:root {
+  color: #1c1915;
+  background: #f4f0e6;
+  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, serif;
+  line-height: 1.45;
+}
+
+body {
+  margin: 0 auto;
+  max-width: 1080px;
+  padding: 28px 20px 64px;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button {
+  background: #1c1915;
+  color: #f4f0e6;
+  border: 0;
+  border-radius: 4px;
+  padding: 8px 14px;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+input {
+  border: 1px solid #b7ad9d;
+  border-radius: 4px;
+  padding: 8px 10px;
+  background: #fffdf8;
+}
+
+.top {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.eyebrow,
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+.eyebrow {
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-family: "Segoe UI", sans-serif;
+  font-size: 12px;
+  color: #6d6458;
+}
+
+h1 {
+  font-size: 34px;
+  font-weight: 600;
+}
+
+.nav {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.nav button {
+  background: transparent;
+  color: #1c1915;
+  border: 1px solid #cfc6b8;
+}
+
+.nav button.active {
+  background: #1c1915;
+  color: #f4f0e6;
+}
+
+.panel {
+  background: #fffdf8;
+  border: 1px solid #e2d9cb;
+  border-radius: 8px;
+  padding: 18px;
+}
+
+.section-head,
+.filters,
+.upload {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.filters,
+.upload,
+.login form {
+  align-items: end;
+  margin: 12px 0;
+}
+
+.login form,
+.upload {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+label {
+  display: grid;
+  gap: 4px;
+  font-family: "Segoe UI", sans-serif;
+  font-size: 13px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.metric {
+  border-top: 2px solid #8d3b2c;
+  padding-top: 8px;
+}
+
+.metric span,
+table {
+  font-family: "Segoe UI", sans-serif;
+}
+
+.metric span {
+  display: block;
+  color: #6d6458;
+  font-size: 13px;
+}
+
+.metric strong {
+  font-size: 22px;
+  font-weight: 600;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 14px;
+  font-size: 14px;
+}
+
+th,
+td {
+  text-align: left;
+  vertical-align: top;
+  padding: 8px 6px;
+  border-bottom: 1px solid #eadfce;
+}
+
+tbody tr {
+  cursor: pointer;
+}
+
+article {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid #eadfce;
+}
+
+article h3,
+article p,
+article li {
+  margin-top: 8px;
+}
+
+.error {
+  color: #8d3b2c;
+  margin-top: 10px;
+}
+
+#job-status:empty {
+  display: none;
+}

@@ -13,7 +13,7 @@ ADR-0001 splits responsibilities between edge and cloud. It does not require eac
 
 ## Decision
 
-- Put each deployable process in its own directory and image. `services/edge-agent` is the edge application. The cloud processes are `services/cloud-agent` and `services/knowledge-ingest`. Business modules stay separate packages. Retrieval and RAG are shared by more than one cloud process, so they live in `libs/cloud` rather than inside one process directory.
+- Put each deployable process in its own directory and image. `services/edge-agent` is the edge application. The cloud processes are `services/cloud-agent`, `services/admin`, and `services/knowledge-ingest`. Business modules stay separate packages. Retrieval and RAG are shared by more than one cloud process, so they live in `libs/cloud` rather than inside one process directory.
 - A business module's implementation lives only in its own package. Modules of several business areas are not placed in one package.
 - Use the same granularity for documents. Each service has one note under `docs/services/`, and the path matches the code package. PRDs and ADRs name the owning service. The system README keeps only the cross-service view and links to the service notes. It does not restate the internal rules of each service.
 - The requirements document and the technical design stay as the original inputs. They are not rearranged to match code packages.
@@ -35,6 +35,7 @@ Current service split:
 | Cloud | Retrieval | `libs/cloud/src/cloud/retrieval` |
 | Cloud | RAG | `libs/cloud/src/cloud/rag` |
 | Cloud | cloud agent | `services/cloud-agent/src/cloud/agent` |
+| Cloud | Admin | `services/admin/src/cloud/admin` |
 | Shared | Contract | `libs/shared/src/shared` |
 
 Fluent Bit only collects logs. Its configuration stays in `deploy/fluent-bit` and is not merged into the filtering service package.

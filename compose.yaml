@@ -74,6 +74,49 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  admin:
+    build:
+      context: .
+      dockerfile: services/admin/Dockerfile
+    environment:
+      ADMIN_TOKEN: ${ADMIN_TOKEN:-}
+      ADMIN_HTTP_HOST: 0.0.0.0
+      ADMIN_HTTP_PORT: "8088"
+      ADMIN_ANALYSIS_DB: /var/lib/cloud/analyses.sqlite3
+      ADMIN_PROCESSED_DB: /var/lib/cloud/processed.sqlite3
+      ADMIN_JOB_DB: /var/lib/admin/jobs.sqlite3
+      ADMIN_UPLOAD_DIR: /var/lib/admin/uploads
+      EDGE_STATUS_URL: http://edge-agent:8090/v1/status
+      CLOUD_MILVUS_URI: http://milvus:19530
+      CLOUD_MILVUS_COLLECTION: ops_cases
+      CLOUD_VECTOR_DIMENSION: "1024"
+      SILICONFLOW_BASE_URL: ${SILICONFLOW_BASE_URL:-https://api.siliconflow.cn/v1}
+      SILICONFLOW_API_KEY: ${SILICONFLOW_API_KEY:-}
+      CLOUD_EMBEDDING_MODEL: ${CLOUD_EMBEDDING_MODEL:-BAAI/bge-m3}
+    ports:
+      - "8088:8088"
+    volumes:
+      - cloud_data:/var/lib/cloud
+      - admin_data:/var/lib/admin
+    depends_on:
+      edge-agent:
+        condition: service_healthy
+      milvus:
+        condition: service_healthy
+      cloud-agent:
+        condition: service_started
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8088/healthz', timeout=2)"
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
   knowledge-ingest:
     profiles: ["tools"]
     build:
@@ -235,6 +278,7 @@ services:
 
 volumes:
   cloud_data:
+  admin_data:
   edge_outbox:
   fluent_bit_state:
   etcd_data:

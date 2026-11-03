@@ -38,6 +38,9 @@ class FakeMilvusClient:
     deleted_filter: str | None = None
     search_call: dict[str, Any] | None = None
     search_result: list[list[dict[str, Any]]] = field(default_factory=list)
+    query_call: dict[str, Any] | None = None
+    query_result: list[dict[str, Any]] = field(default_factory=list)
+    stats: dict[str, Any] = field(default_factory=lambda: {"row_count": 0})
     existing: bool = False
     description: dict[str, Any] = field(default_factory=dict)
     created_collection: dict[str, Any] | None = None
@@ -61,6 +64,13 @@ class FakeMilvusClient:
     def search(self, **kwargs: Any) -> list[list[dict[str, Any]]]:
         self.search_call = kwargs
         return self.search_result
+
+    def query(self, **kwargs: Any) -> list[dict[str, Any]]:
+        self.query_call = kwargs
+        return self.query_result
+
+    def get_collection_stats(self, **kwargs: Any) -> dict[str, Any]:
+        return self.stats
 
 
 def vector_record() -> VectorRecord:
@@ -285,6 +295,36 @@ class MilvusVectorIndexTests(unittest.TestCase):
 
         with self.assertRaisesRegex(ValueError, "exact target_ip"):
             index.search((0.1, 0.2), metadata_filter={}, limit=5)
+
+    def test_list_cases_reads_scalar_fields_only(self) -> None:
+        client = FakeMilvusClient(
+            query_result=[
+                {
+                    "case_id": "CASE-1",
+                    "summary": "Database timeout",
+                    "resolution": "Review pool limits",
+                    "source": "tickets.jsonl",
+                    "target_ip": "192.0.2.10",
+                    "embedding": [0.1, 0.2],
+                }
+            ],
+            stats={"row_count": 4},
+        )
+        index = MilvusVectorIndex(client, "ops_cases", vector_dimension=2)
+
+        cases = index.list_cases(target_ip="192.0.2.10", source="tickets.jsonl", limit=10)
+
+        self.assertEqual(
+            client.query_call["output_fields"],
+            ["case_id", "summary", "resolution", "source", "target_ip"],
+        )
+        self.assertNotIn("embedding", client.query_call["output_fields"])
+        self.assertIn('target_ip == "192.0.2.10"', client.query_call["filter"])
+        self.assertIn('source == "tickets.jsonl"', client.query_call["filter"])
+        self.assertEqual(cases[0].case_id, "CASE-1")
+        self.assertFalse(hasattr(cases[0], "vector"))
+        self.assertFalse(hasattr(cases[0], "embedding"))
+        self.assertEqual(index.count_cases(), 4)
 
 
 if __name__ == "__main__":

@@ -5,7 +5,7 @@ This page explains how to test and start each service. Service responsibilities 
 Python 3.11 or newer is required. The edge and cloud agents import LangGraph, so install `langgraph>=1,<2` before running tests. Tests that do not depend on external services can then be run directly:
 
 ```bash
-PYTHONPATH=services/edge-agent/src:services/cloud-agent/src:services/mqtt-kafka-bridge/src:services/knowledge-ingest/src:libs/cloud/src:libs/shared/src python3 -m unittest discover -s tests -v
+PYTHONPATH=services/edge-agent/src:services/cloud-agent/src:services/mqtt-kafka-bridge/src:services/knowledge-ingest/src:services/admin/src:libs/cloud/src:libs/shared/src python3 -m unittest discover -s tests -v
 ```
 
 Agent orchestration imports LangGraph, so install it before running the agent tests. When real services are required, install the optional dependencies first:
@@ -32,8 +32,8 @@ MQTT is plaintext on port `1883` against EMQX. The edge agent connects with MQTT
 Integration tests for transport and collection:
 
 ```bash
-RUN_MQTT_INTEGRATION=1 PYTHONPATH=services/edge-agent/src:services/cloud-agent/src:services/mqtt-kafka-bridge/src:services/knowledge-ingest/src:libs/cloud/src:libs/shared/src python3 -m unittest tests.test_mqtt_integration -v
-RUN_FLUENT_BIT_INTEGRATION=1 PYTHONPATH=services/edge-agent/src:services/cloud-agent/src:services/mqtt-kafka-bridge/src:services/knowledge-ingest/src:libs/cloud/src:libs/shared/src python3 -m unittest tests.test_fluentbit_integration -v
+RUN_MQTT_INTEGRATION=1 PYTHONPATH=services/edge-agent/src:services/cloud-agent/src:services/mqtt-kafka-bridge/src:services/knowledge-ingest/src:services/admin/src:libs/cloud/src:libs/shared/src python3 -m unittest tests.test_mqtt_integration -v
+RUN_FLUENT_BIT_INTEGRATION=1 PYTHONPATH=services/edge-agent/src:services/cloud-agent/src:services/mqtt-kafka-bridge/src:services/knowledge-ingest/src:services/admin/src:libs/cloud/src:libs/shared/src python3 -m unittest tests.test_fluentbit_integration -v
 ```
 
 Port backfill is taken only from an explicit port field or from log text that carries a port label.
@@ -47,10 +47,14 @@ The cloud agent uses the same `SILICONFLOW_BASE_URL` and `SILICONFLOW_API_KEY`. 
 Integration test for the retrieval adapter:
 
 ```bash
-RUN_MILVUS_INTEGRATION=1 PYTHONPATH=services/edge-agent/src:services/cloud-agent/src:services/mqtt-kafka-bridge/src:services/knowledge-ingest/src:libs/cloud/src:libs/shared/src python3 -m unittest tests.test_milvus_integration -v
+RUN_MILVUS_INTEGRATION=1 PYTHONPATH=services/edge-agent/src:services/cloud-agent/src:services/mqtt-kafka-bridge/src:services/knowledge-ingest/src:services/admin/src:libs/cloud/src:libs/shared/src python3 -m unittest tests.test_milvus_integration -v
 ```
 
 The integration test uses a temporary SQLite database and a unique Milvus collection, and it cleans them up when it finishes.
+
+## Admin console
+
+The [admin console](services/cloud/admin.md) starts with the main Compose path and listens on `8088`. Set `ADMIN_TOKEN` in `.env` before `docker compose up`. An empty token makes the admin process exit. Open `http://localhost:8088`, enter that token, and use it to read analyses and upload a knowledge document. The CLI import below remains available.
 
 ## Knowledge ingestion
 

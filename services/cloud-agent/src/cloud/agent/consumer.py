@@ -79,6 +79,8 @@ class SQLiteProcessedEventStore:
         if self.path == ":memory:" and memory_connection is None:
             raise RuntimeError("processed event store is closed")
         connection = memory_connection or sqlite3.connect(self.path, timeout=5.0)
+        if memory_connection is None:
+            connection.execute("PRAGMA journal_mode=WAL")
         try:
             with connection:
                 yield connection
