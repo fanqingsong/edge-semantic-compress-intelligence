@@ -4,7 +4,6 @@ WORKDIR /app
 
 COPY services/cloud-agent/pyproject.toml ./pyproject.toml
 COPY services/cloud-agent/src/cloud/agent ./src/cloud/agent
-COPY services/feedback-admin/src/cloud/feedback ./src/cloud/feedback
 COPY libs/cloud/src/cloud/retrieval ./src/cloud/retrieval
 COPY libs/cloud/src/cloud/rag ./src/cloud/rag
 COPY libs/shared/src/shared ./src/shared

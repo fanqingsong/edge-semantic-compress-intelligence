@@ -7,11 +7,6 @@ from cloud.agent.runtime import (
     SQLiteAnalysisStore,
 )
 from shared.contract import EdgeEvent
-from cloud.feedback import (
-    FeedbackStatus,
-    PromptFeedbackService,
-    SQLiteFeedbackStore,
-)
 from cloud.rag import RagService
 from tests.standins import FixedAnalysisModel
 
@@ -41,35 +36,6 @@ class CloudRuntimeTests(unittest.TestCase):
             self.assertEqual(
                 result["answer"]["root_cause"], "Likely connection saturation"
             )
-
-    def test_rag_handler_records_feedback_without_raw_log(self) -> None:
-        event = EdgeEvent(
-            event_id="550e8400-e29b-41d4-a716-446655440001",
-            timestamp="2026-11-01T10:30:00Z",
-            service="payments",
-            summary="Database timeout",
-        )
-        rag_service = RagService(EmptyRetriever(), FixedAnalysisModel())
-        with tempfile.TemporaryDirectory() as directory:
-            analysis_store = SQLiteAnalysisStore(
-                str(Path(directory) / "analyses.sqlite3")
-            )
-            feedback_store = SQLiteFeedbackStore(
-                str(Path(directory) / "feedback.sqlite3")
-            )
-            handler = RagEventHandler(
-                rag_service,
-                analysis_store,
-                PromptFeedbackService(feedback_store),
-            )
-
-            handler(event)
-
-            suggestions = feedback_store.list()
-            self.assertEqual(len(suggestions), 1)
-            self.assertEqual(suggestions[0].event_id, event.event_id)
-            self.assertEqual(suggestions[0].status, FeedbackStatus.PENDING)
-            self.assertEqual(analysis_store.get(event.event_id)["event_id"], event.event_id)
 
 
 if __name__ == "__main__":

@@ -12,7 +12,7 @@ This directory splits the [system requirements](../requirements) into PRDs that 
 | PRD-04 | [Cloud knowledge ingestion](prd-04-knowledge-ingestion.md) | [Knowledge ingestion](../services/cloud/knowledge.md) | C-01 | None; supplies knowledge data for PRD-05 |
 | PRD-05 | [Cloud hybrid retrieval](prd-05-hybrid-retrieval.md) | [Retrieval](../services/cloud/retrieval.md) | C-02 | PRD-04; edge summary contract |
 | PRD-06 | [Cloud RAG root-cause analysis](prd-06-rag-analysis.md) | [RAG](../services/cloud/rag.md) | C-03 | PRD-05 |
-| PRD-07 | [Summary-quality feedback loop](prd-07-feedback-loop.md) | [Feedback](../services/cloud/feedback.md) | C-04 | PRD-02, PRD-06 |
+| PRD-07 | [Summary-quality feedback loop](prd-07-feedback-loop.md) | removed | C-04 | PRD-02, PRD-06 |
 
 The edge agent and the cloud agent are assembly processes and do not have their own PRDs. See the [edge agent](../services/edge/agent.md) and the [cloud agent](../services/cloud/agent.md).
 

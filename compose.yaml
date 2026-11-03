@@ -71,7 +71,6 @@ services:
       CLOUD_ANALYSIS_TIMEOUT: ${CLOUD_ANALYSIS_TIMEOUT:-60}
       CLOUD_PROCESSED_DB: /var/lib/cloud/processed.sqlite3
       CLOUD_ANALYSIS_DB: /var/lib/cloud/analyses.sqlite3
-      CLOUD_FEEDBACK_DB: /var/lib/cloud/feedback.sqlite3
     volumes:
       - cloud_data:/var/lib/cloud
     depends_on:
@@ -105,15 +104,6 @@ services:
     depends_on:
       milvus:
         condition: service_healthy
-
-  feedback-admin:
-    profiles: ["tools"]
-    build:
-      context: .
-      dockerfile: services/feedback-admin/Dockerfile
-    command: ["--db", "/var/lib/cloud/feedback.sqlite3", "list"]
-    volumes:
-      - cloud_data:/var/lib/cloud
 
   emqx:
     image: emqx/emqx:5.9.3

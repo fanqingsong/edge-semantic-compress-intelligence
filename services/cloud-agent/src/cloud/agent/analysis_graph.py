@@ -20,15 +20,6 @@ Topology::
               save (SQLite analyses, upsert by event_id)
                  |
                  v
-              observe (PromptFeedbackService; skipped when unset)
-                 |
-                 +-- missing target_ip / target_port / error_code
-                 |     --> suggestion "missing_entities"
-                 +-- entities present but no retrieved cases
-                 |     --> suggestion "no_retrieved_cases"
-                 +-- otherwise write nothing
-                 |
-                 v
               END
 """
 
@@ -38,7 +29,6 @@ from typing import Protocol, TypedDict
 
 from langgraph.graph import END, START, StateGraph
 
-from cloud.feedback.service import PromptFeedbackService
 from cloud.rag.analysis import RagResult, RagService
 from shared.contract import EdgeEvent
 
@@ -54,19 +44,15 @@ class AnalysisState(TypedDict, total=False):
     ``result``
         ``RagResult`` from ``analyze``: the event id, the retrieved cases,
         and the model's root cause, evidence, recommendations, and uncertainty.
-        ``save`` and ``observe`` only read it.
+        ``save`` only reads it.
     """
 
     event: EdgeEvent
     result: RagResult
 
 
-def build_analysis_graph(
-    rag_service: RagService,
-    analysis_store: AnalysisStore,
-    feedback_service: PromptFeedbackService | None,
-):
-    """Compile analyze → save → observe.
+def build_analysis_graph(rag_service: RagService, analysis_store: AnalysisStore):
+    """Compile analyze → save.
 
     ``RagEventHandler`` invokes this with ``{"event": event}``.
     """
@@ -86,24 +72,10 @@ def build_analysis_graph(
         analysis_store.save(state["result"])
         return {}
 
-    def observe(state: AnalysisState) -> AnalysisState:
-        """Record a prompt suggestion when this event shows a summary gap.
-
-        Missing ``target_ip``, ``target_port``, or ``error_code`` produces a
-        ``missing_entities`` suggestion. Entities present but zero retrieved
-        cases produce ``no_retrieved_cases``. A complete event with cases
-        writes nothing. No suggestion is written when feedback is not wired.
-        """
-        if feedback_service is not None:
-            feedback_service.observe(state["event"], state["result"])
-        return {}
-
     builder = StateGraph(AnalysisState)
     builder.add_node("analyze", analyze)
     builder.add_node("save", save)
-    builder.add_node("observe", observe)
     builder.add_edge(START, "analyze")
     builder.add_edge("analyze", "save")
-    builder.add_edge("save", "observe")
-    builder.add_edge("observe", END)
+    builder.add_edge("save", END)
     return builder.compile()

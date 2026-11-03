@@ -3,7 +3,7 @@
 - Status: Accepted (MVP human review; the live prompt is not changed automatically)
 - Date: 2026-11-01
 - Related PRD: PRD-07
-- Code: [Feedback](../services/cloud/feedback.md)
+- Code: removed with `services/feedback-admin`
 
 ## Context
 

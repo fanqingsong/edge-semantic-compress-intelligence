@@ -12,10 +12,6 @@ from cloud.agent.runtime import (
     RagEventHandler,
     SQLiteAnalysisStore,
 )
-from cloud.feedback.service import (
-    PromptFeedbackService,
-    SQLiteFeedbackStore,
-)
 from cloud.rag.analysis import RagService
 from cloud.rag.models import (
     OpenAICompatibleAnalysisModel,
@@ -85,10 +81,6 @@ def build_parser() -> argparse.ArgumentParser:
         "--analysis-db",
         default=os.environ.get("CLOUD_ANALYSIS_DB", "/var/lib/cloud/analyses.sqlite3"),
     )
-    parser.add_argument(
-        "--feedback-db",
-        default=os.environ.get("CLOUD_FEEDBACK_DB", "/var/lib/cloud/feedback.sqlite3"),
-    )
     return parser
 
 
@@ -127,12 +119,7 @@ def main() -> None:
     )
     processed_store = SQLiteProcessedEventStore(args.processed_db)
     analysis_store = SQLiteAnalysisStore(args.analysis_db)
-    feedback_store = SQLiteFeedbackStore(args.feedback_db)
-    handler = RagEventHandler(
-        rag_service,
-        analysis_store,
-        PromptFeedbackService(feedback_store),
-    )
+    handler = RagEventHandler(rag_service, analysis_store)
     consumer = KafkaEventConsumer(MessagePackCodec(), processed_store, handler)
     logging.info("cloud RAG consumer reading Kafka topic %s", args.kafka_topic)
     try:
@@ -141,7 +128,6 @@ def main() -> None:
         pass
     finally:
         processed_store.close()
-        feedback_store.close()
         milvus_client.close()
 
 

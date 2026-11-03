@@ -9,9 +9,6 @@ from pathlib import Path
 from typing import Iterator
 
 from cloud.agent.analysis_graph import build_analysis_graph
-from cloud.feedback.service import (
-    PromptFeedbackService,
-)
 from cloud.rag.analysis import (
     RagResult,
     RagService,
@@ -66,18 +63,13 @@ class SQLiteAnalysisStore:
 class RagEventHandler:
     rag_service: RagService
     analysis_store: SQLiteAnalysisStore
-    feedback_service: PromptFeedbackService | None = None
     _graph: object = field(init=False, repr=False, compare=False)
 
     def __post_init__(self) -> None:
         object.__setattr__(
             self,
             "_graph",
-            build_analysis_graph(
-                self.rag_service,
-                self.analysis_store,
-                self.feedback_service,
-            ),
+            build_analysis_graph(self.rag_service, self.analysis_store),
         )
 
     def __call__(self, event: EdgeEvent) -> None:

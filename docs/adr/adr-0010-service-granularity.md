@@ -1,7 +1,7 @@
 # ADR-0010: Manage code and docs at service granularity
 
 - Status: Accepted
-- Date: 2026-11-02
+- Date: 2026-11-03
 - Related PRDs: PRD-01, PRD-02, PRD-03, PRD-04, PRD-05, PRD-06, PRD-07
 - Code: [service catalog](../services/README.md)
 
@@ -13,13 +13,13 @@ ADR-0001 splits responsibilities between edge and cloud. It does not require eac
 
 ## Decision
 
-- Put each deployable process in its own directory and image. `services/edge-agent` is the edge application. The cloud processes are `services/cloud-agent`, `services/knowledge-ingest`, and `services/feedback-admin`. Business modules stay separate packages. Retrieval and RAG are shared by more than one cloud process, so they live in `libs/cloud` rather than inside one process directory.
+- Put each deployable process in its own directory and image. `services/edge-agent` is the edge application. The cloud processes are `services/cloud-agent` and `services/knowledge-ingest`. Business modules stay separate packages. Retrieval and RAG are shared by more than one cloud process, so they live in `libs/cloud` rather than inside one process directory.
 - A business module's implementation lives only in its own package. Modules of several business areas are not placed in one package.
 - Use the same granularity for documents. Each service has one note under `docs/services/`, and the path matches the code package. PRDs and ADRs name the owning service. The system README keeps only the cross-service view and links to the service notes. It does not restate the internal rules of each service.
 - The requirements document and the technical design stay as the original inputs. They are not rearranged to match code packages.
-- Process entry points only assemble. The edge agent calls filtering, summarization, and transport. The cloud agent calls retrieval, RAG, and feedback observation. The entry package does not contain those service implementations.
-- Knowledge ingestion and feedback review are separate processes, and each still has its own code package and document.
-- Cross-application contracts live in `libs/shared`. `shared` contains no service logic and does not depend on any service. Retrieval and RAG live in `libs/cloud`. That library does not depend on the cloud processes. The cloud agent image copies the feedback package so observation can run in-process. The repository keeps a single copy under `services/feedback-admin`.
+- Process entry points only assemble. The edge agent calls filtering, summarization, and transport. The cloud agent calls retrieval and RAG. The entry package does not contain those service implementations.
+- Knowledge ingestion is a separate process, and it has its own code package and document.
+- Cross-application contracts live in `libs/shared`. `shared` contains no service logic and does not depend on any service. Retrieval and RAG live in `libs/cloud`. That library does not depend on the cloud processes.
 - A dependency points at the service that defines the produced type. For example, RAG uses `RetrievedCase` defined by retrieval, and retrieval does not depend on RAG.
 - When a service is added, merged, or split, update the code package, the service note, and the service ownership on the PRDs and ADRs together. Changing only one of those is not done.
 
@@ -34,7 +34,6 @@ Current service split:
 | Cloud | Knowledge ingestion | `services/knowledge-ingest/src/cloud/knowledge` |
 | Cloud | Retrieval | `libs/cloud/src/cloud/retrieval` |
 | Cloud | RAG | `libs/cloud/src/cloud/rag` |
-| Cloud | Feedback | `services/feedback-admin/src/cloud/feedback` |
 | Cloud | cloud agent | `services/cloud-agent/src/cloud/agent` |
 | Shared | Contract | `libs/shared/src/shared` |
 

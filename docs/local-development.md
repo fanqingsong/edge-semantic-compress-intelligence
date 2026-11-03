@@ -5,7 +5,7 @@ This page explains how to test and start each service. Service responsibilities 
 Python 3.11 or newer is required. The edge and cloud agents import LangGraph, so install `langgraph>=1,<2` before running tests. Tests that do not depend on external services can then be run directly:
 
 ```bash
-PYTHONPATH=services/edge-agent/src:services/cloud-agent/src:services/mqtt-kafka-bridge/src:services/knowledge-ingest/src:services/feedback-admin/src:libs/cloud/src:libs/shared/src python3 -m unittest discover -s tests -v
+PYTHONPATH=services/edge-agent/src:services/cloud-agent/src:services/mqtt-kafka-bridge/src:services/knowledge-ingest/src:libs/cloud/src:libs/shared/src python3 -m unittest discover -s tests -v
 ```
 
 Agent orchestration imports LangGraph, so install it before running the agent tests. When real services are required, install the optional dependencies and generate local development certificates first:
@@ -33,8 +33,8 @@ MQTT uses mTLS on port `8883` against EMQX. Regenerate the development certifica
 Integration tests for transport and collection:
 
 ```bash
-RUN_MQTT_INTEGRATION=1 PYTHONPATH=services/edge-agent/src:services/cloud-agent/src:services/mqtt-kafka-bridge/src:services/knowledge-ingest/src:services/feedback-admin/src:libs/cloud/src:libs/shared/src python3 -m unittest tests.test_mqtt_integration -v
-RUN_FLUENT_BIT_INTEGRATION=1 PYTHONPATH=services/edge-agent/src:services/cloud-agent/src:services/mqtt-kafka-bridge/src:services/knowledge-ingest/src:services/feedback-admin/src:libs/cloud/src:libs/shared/src python3 -m unittest tests.test_fluentbit_integration -v
+RUN_MQTT_INTEGRATION=1 PYTHONPATH=services/edge-agent/src:services/cloud-agent/src:services/mqtt-kafka-bridge/src:services/knowledge-ingest/src:libs/cloud/src:libs/shared/src python3 -m unittest tests.test_mqtt_integration -v
+RUN_FLUENT_BIT_INTEGRATION=1 PYTHONPATH=services/edge-agent/src:services/cloud-agent/src:services/mqtt-kafka-bridge/src:services/knowledge-ingest/src:libs/cloud/src:libs/shared/src python3 -m unittest tests.test_fluentbit_integration -v
 ```
 
 Port backfill is taken only from an explicit port field or from log text that carries a port label.
@@ -48,7 +48,7 @@ The cloud agent uses the same `SILICONFLOW_BASE_URL` and `SILICONFLOW_API_KEY`. 
 Integration test for the retrieval adapter:
 
 ```bash
-RUN_MILVUS_INTEGRATION=1 PYTHONPATH=services/edge-agent/src:services/cloud-agent/src:services/mqtt-kafka-bridge/src:services/knowledge-ingest/src:services/feedback-admin/src:libs/cloud/src:libs/shared/src python3 -m unittest tests.test_milvus_integration -v
+RUN_MILVUS_INTEGRATION=1 PYTHONPATH=services/edge-agent/src:services/cloud-agent/src:services/mqtt-kafka-bridge/src:services/knowledge-ingest/src:libs/cloud/src:libs/shared/src python3 -m unittest tests.test_milvus_integration -v
 ```
 
 The integration test uses a temporary SQLite database and a unique Milvus collection, and it cleans them up when it finishes.
@@ -62,19 +62,6 @@ docker compose --profile tools run --rm knowledge-ingest
 ```
 
 Documents must contain explicit `Summary` and `Resolution` sections. Missing fields fail the import. The model does not fill in facts.
-
-## Feedback
-
-The review CLI for [feedback](services/cloud/feedback.md) also uses the `tools` profile:
-
-```bash
-docker compose --profile tools run --rm feedback-admin
-docker compose --profile tools run --rm feedback-admin --db /var/lib/cloud/feedback.sqlite3 review <suggestion-id> --approve --reviewer <name> --note "validated against labeled cases"
-docker compose --profile tools run --rm feedback-admin --db /var/lib/cloud/feedback.sqlite3 publish <suggestion-id>
-docker compose --profile tools run --rm feedback-admin --db /var/lib/cloud/feedback.sqlite3 weekly-report
-```
-
-`publish` only records a human confirmation. It does not push remotely or replace the edge prompt automatically.
 
 Stop the local stack:
 

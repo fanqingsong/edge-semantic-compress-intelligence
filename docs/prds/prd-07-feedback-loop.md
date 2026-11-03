@@ -2,7 +2,7 @@
 
 **Original requirement:** C-04
 
-**Service:** [Feedback](../services/cloud/feedback.md)
+**Service:** removed with `services/feedback-admin`
 
 ## Goal
 

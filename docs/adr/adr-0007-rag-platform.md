@@ -18,7 +18,7 @@ The cloud must assemble the edge summary and hybrid-retrieval cases into analysi
 
 ## Decision
 
-- The edge agent and the cloud agent use LangGraph `StateGraph` for control flow. The cloud graph branches on decode and idempotency, then runs analysis, persistence, and feedback observation. The edge graph filters a batch and loops once per service. Retrieval, prompt assembly, and model adapters stay in their current modules.
+- The edge agent and the cloud agent use LangGraph `StateGraph` for control flow. The cloud graph branches on decode and idempotency, then runs analysis and persistence. The edge graph filters a batch and loops once per service. Retrieval, prompt assembly, and model adapters stay in their current modules.
 - The graphs do not use a LangGraph checkpointer. `processed.sqlite3` and the edge outbox remain the durability mechanisms.
 - Recorded: 2026-11-02.
 

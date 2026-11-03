@@ -16,8 +16,7 @@ Runtime path:
    handed to ``RagEventHandler``, then marked processed only after that
    handler returns.
 4. ``RagEventHandler`` invokes the analysis graph: retrieve similar cases,
-   ask the analysis model, upsert the result, then record a prompt suggestion
-   when the event is a weak summary.
+   ask the analysis model, and upsert the result.
 5. The caller commits the Kafka offset only for ``processed`` and
    ``duplicate``. Any other disposition seeks back to that record and retries
    after one second. A commit failure is reported as ``ack_failed``.
@@ -58,7 +57,7 @@ Topology of one payload::
         +-- anything else -----------> seek back, sleep 1s, retry
             (handler exception is processing_failed, outside the graph)
 
-``handle`` is ``cloud.agent.analysis_graph``: analyze, save, then observe.
+``handle`` is ``cloud.agent.analysis_graph``: analyze, then save.
 """
 
 from __future__ import annotations

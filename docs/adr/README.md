@@ -13,7 +13,7 @@ This directory records architecture decisions that affect system boundaries, tec
 | ADR-0005 | [Cloud knowledge ingestion and vector storage](adr-0005-knowledge-platform.md) | Accepted (Milvus/bge-m3/MarkItDown MVP) | [Knowledge ingestion](../services/cloud/knowledge.md) | PRD-04 |
 | ADR-0006 | [Metadata filter combined with vector retrieval](adr-0006-hybrid-retrieval.md) | Accepted (policy); fallback undecided | [Retrieval](../services/cloud/retrieval.md) | PRD-05 |
 | ADR-0007 | [RAG orchestration and inference model](adr-0007-rag-platform.md) | Pending | [RAG](../services/cloud/rag.md) | PRD-06 |
-| ADR-0008 | [Summary-quality feedback and prompt governance](adr-0008-feedback-governance.md) | Accepted (human review, no automatic distribution) | [Feedback](../services/cloud/feedback.md) | PRD-07 |
+| ADR-0008 | [Summary-quality feedback and prompt governance](adr-0008-feedback-governance.md) | Accepted (human review, no automatic distribution); implementation removed | — | PRD-07 |
 | ADR-0009 | [Edge event schema and data minimization](adr-0009-edge-event-contract.md) | Accepted (MVP) | [shared](../services/shared.md) | PRD-02, PRD-03, PRD-05 |
 | ADR-0010 | [Manage code and docs at service granularity](adr-0010-service-granularity.md) | Accepted | [All services](../services/README.md) | PRD-01 through PRD-07 |
 | ADR-0011 | [Clustered MQTT ingress and a cloud-side Kafka bridge](adr-0011-clustered-mqtt-kafka-bridge.md) | Accepted | [Transport](../services/edge/transport.md) | PRD-03 |

@@ -2,7 +2,7 @@
 
 An edge log compression and cloud RAG fault-analysis system. On the edge, rule filtering and a local small model distill logs. In the cloud, an operations knowledge base retrieves historical cases and produces root-cause analysis and remediation suggestions.
 
-The repository contains requirements, the technical design, per-service implementation notes, PRDs, and architecture decision records. The edge application lives in `services/edge-agent`. The cloud processes live in `services/cloud-agent`, `services/mqtt-kafka-bridge`, `services/knowledge-ingest`, and `services/feedback-admin`. Inside the edge application, the business modules are filtering, summarization, transport, and the edge agent. Retrieval and RAG live in `libs/cloud`. The shared contract lives in `libs/shared`. A production CA and certificates, a real SLM, a running embedding model and cloud model, and automated prompt distribution are still to be deployed.
+The repository contains requirements, the technical design, per-service implementation notes, PRDs, and architecture decision records. The edge application lives in `services/edge-agent`. The cloud processes live in `services/cloud-agent`, `services/mqtt-kafka-bridge`, and `services/knowledge-ingest`. Inside the edge application, the business modules are filtering, summarization, transport, and the edge agent. Retrieval and RAG live in `libs/cloud`. The shared contract lives in `libs/shared`. A production CA and certificates, a real SLM, a running embedding model and cloud model, and automated prompt distribution are still to be deployed.
 
 ## Architecture
 
@@ -10,7 +10,7 @@ The system diagnoses faults under limited bandwidth and edge compute. The edge c
 
 ### Deployment view
 
-The local topology is defined in [compose.yaml](compose.yaml). Fluent Bit reads the mounted log directory and receives syslog on UDP `5514`. After normalization it `POST`s to the [edge agent](docs/services/edge/agent.md). The edge agent listens on `8090` and internally calls filtering, summarization, and transport in order, then publishes events over MQTT `8883`. EMQX accepts that publish. The MQTT-to-Kafka bridge subscribes to `edge/events` and writes the same payload to Kafka topic `edge.events` after Kafka acknowledges it. The [cloud agent](docs/services/cloud/agent.md) consumes that Kafka topic, calls retrieval and RAG, and writes the local analysis store and feedback store. Milvus standalone mode depends on etcd and MinIO. [Knowledge ingestion](docs/services/cloud/knowledge.md) and [feedback](docs/services/cloud/feedback.md) review are separate processes on the Compose profile `tools`, and they do not stay up with the main path.
+The local topology is defined in [compose.yaml](compose.yaml). Fluent Bit reads the mounted log directory and receives syslog on UDP `5514`. After normalization it `POST`s to the [edge agent](docs/services/edge/agent.md). The edge agent listens on `8090` and internally calls filtering, summarization, and transport in order, then publishes events over MQTT `8883`. EMQX accepts that publish. The MQTT-to-Kafka bridge subscribes to `edge/events` and writes the same payload to Kafka topic `edge.events` after Kafka acknowledges it. The [cloud agent](docs/services/cloud/agent.md) consumes that Kafka topic, calls retrieval and RAG, and writes the local analysis store. Milvus standalone mode depends on etcd and MinIO. [Knowledge ingestion](docs/services/cloud/knowledge.md) is a separate process on the Compose profile `tools`, and it does not stay up with the main path.
 
 ```mermaid
 flowchart LR
@@ -29,20 +29,17 @@ flowchart LR
 	subgraph CloudDeploy[Cloud]
 		CloudAgent[CloudAgent]
 		AnalysisDb[Analysis store_SQLite]
-		FeedbackDb[Feedback store_SQLite]
 		Milvus[Milvus_ops_cases]
 		Etcd[etcd]
 		Minio[MinIO]
 	end
 
 	KnowledgeCli[knowledge-ingest] --> Milvus
-	FeedbackCli[prompt-feedback] --> FeedbackDb
 	Outbox -->|"QoS 1 / edge/events"| Emqx
 	Emqx --> Bridge[mqtt-kafka-bridge]
 	Bridge --> Kafka
 	Kafka --> CloudAgent
 	CloudAgent --> AnalysisDb
-	CloudAgent --> FeedbackDb
 	CloudAgent --> Milvus
 	Milvus --> Etcd
 	Milvus --> Minio
@@ -50,7 +47,7 @@ flowchart LR
 
 ### Services
 
-Responsibilities, boundaries, and code paths for each service are in the [service catalog](docs/services/README.md). There are five processes: `edge-log-agent`, `mqtt-kafka-bridge`, `cloud-rag-agent`, `knowledge-ingest`, and `prompt-feedback`. Filtering, summarization, and transport are called by the edge agent. Retrieval and RAG are called by the cloud agent. Feedback has both online observation and a separate review process.
+Responsibilities, boundaries, and code paths for each service are in the [service catalog](docs/services/README.md). There are four processes: `edge-log-agent`, `mqtt-kafka-bridge`, `cloud-rag-agent`, and `knowledge-ingest`. Filtering, summarization, and transport are called by the edge agent. Retrieval and RAG are called by the cloud agent.
 
 The contract across the deployment boundary is [`EdgeEvent` in `shared`](docs/services/shared.md). EMQX provides mTLS and topic ACLs: `edge-agent` may only publish to `edge/events`, `mqtt-kafka-bridge` may only subscribe to it, and `healthcheck` may only read `$SYS/#`.
 
@@ -78,7 +75,6 @@ flowchart TD
 	Consume --> Retrieve[IP filter plus vector Top5]
 	Retrieve --> Prompt[Three-section prompt]
 	Prompt --> Persist[Write analysis store]
-	Prompt --> Observe[Observe summary quality]
 ```
 
 When `target_ip` is missing or there is no exact IP match, retrieval returns an empty case set and does not fall back to vector-only search. The prompt is fixed as three sections: `<edge_summary>`, `<retrieved_cases>`, and `<analysis_instructions>`. Summaries and cases are escaped as untrusted data. The policy is described in the [retrieval service](docs/services/cloud/retrieval.md) and [ADR-0006](docs/adr/adr-0006-hybrid-retrieval.md).
@@ -95,25 +91,13 @@ flowchart LR
 	Collection --> OnlineRetrieve[Online hybrid retrieval]
 ```
 
-### Feedback governance
-
-After the cloud agent finishes RAG, the [feedback service](docs/services/cloud/feedback.md) observes that event. Missing optional entities produce a `missing_entities` suggestion. Complete entities with empty recall produce a `no_retrieved_cases` suggestion. The review CLI is a separate process. Publishing only records status and does not replace the edge agent's live prompt. Governance requirements are in that service note and [ADR-0008](docs/adr/adr-0008-feedback-governance.md).
-
-```mermaid
-stateDiagram-v2
-	[*] --> pending
-	pending --> approved
-	pending --> rejected
-	approved --> published
-```
-
 ### Reliability and security
 
 The [transport service](docs/services/edge/transport.md) provides at-least-once delivery: it writes the outbox first and deletes the record only after the broker acknowledges it. That acknowledgement does not mean cloud-side business processing has finished. The [cloud agent](docs/services/cloud/agent.md) sends a manual ACK only after business processing succeeds and the deduplication record is persisted. Ingress requires mTLS. After the vector store applies its filter, retrieval compares the IP again.
 
 ### Implementation status
 
-Implemented: filtering, summarization, transport, the edge agent, knowledge ingestion, retrieval, RAG, feedback, and the cloud agent. Fluent Bit file and syslog configuration is included.
+Implemented: filtering, summarization, transport, the edge agent, knowledge ingestion, retrieval, RAG, and the cloud agent. Fluent Bit file and syslog configuration is included.
 
 Still to deploy: a production CA and certificate rotation, distribution and rollback of approved prompts, and Prometheus metrics for the pre-filter. Local Compose sets SiliconFlow through `SILICONFLOW_BASE_URL`, `SILICONFLOW_API_KEY`, and the edge, embedding, and analysis model names. Kafka, Elasticsearch, and LlamaIndex remain candidates in the ADRs and are off the current runtime path.
 
@@ -126,7 +110,7 @@ Technology choices and constraints follow the [ADR index](docs/adr/README.md).
 - [Technical design](docs/technology): reference architecture, data flow, component candidates, and implementation phases.
 - [PRD index](docs/prds/README.md): requirements, acceptance criteria, and dependencies for each service.
 - [ADR index](docs/adr/README.md): architecture decisions, alternatives, status, and choices still to confirm.
-- [Local development](docs/local-development.md): run tests per service, start Compose, ingest knowledge, and review feedback.
+- [Local development](docs/local-development.md): run tests per service, start Compose, and ingest knowledge.
 
 Suggested reading order: requirements, then the technical design, the service catalog, the matching PRD, and the related ADRs.
 
@@ -134,6 +118,6 @@ Suggested reading order: requirements, then the technical design, the service ca
 
 1. **End-to-end MVP**: edge rule filtering, cloud knowledge ingestion, hybrid retrieval, and RAG. A rule-based simulated summary can validate the cloud path first.
 2. **Edge intelligent distillation**: add a local SLM, schema-constrained output, and entity validation, then finish end-to-end integration.
-3. **Reliability and the feedback loop**: secure transport, retry on weak networks, runtime observation, and evaluation of prompt suggestions.
+3. **Reliability**: secure transport and retry on weak networks.
 
 Dependencies and acceptance criteria are in the [PRD index](docs/prds/README.md). Open choices such as MQTT or Kafka, vector storage, and model format are in the [ADR index](docs/adr/README.md).
