@@ -90,7 +90,7 @@ The knowledge plane is separate from the online path and runs on its own through
 ```mermaid
 flowchart LR
 	Sources[Ops docs and historical cases] --> Parse[MarkItDown or JSON Lines]
-	Parse --> Embed[bge-m3 or deterministic mock]
+	Parse --> Embed[bge-m3]
 	Embed --> Collection[Milvus_ops_cases]
 	Collection --> OnlineRetrieve[Online hybrid retrieval]
 ```
@@ -115,7 +115,7 @@ The [transport service](docs/services/edge/transport.md) provides at-least-once 
 
 Implemented: filtering, summarization, transport, the edge agent, knowledge ingestion, retrieval, RAG, feedback, and the cloud agent. Fluent Bit file and syslog configuration is included.
 
-Still to deploy: a production CA and certificate rotation, a real SLM on the target hardware, a running embedding model and analysis model, distribution and rollback of approved prompts, and Prometheus metrics for the pre-filter. Kafka, Elasticsearch, and LlamaIndex remain candidates in the ADRs and are off the current runtime path.
+Still to deploy: a production CA and certificate rotation, distribution and rollback of approved prompts, and Prometheus metrics for the pre-filter. Local Compose sets SiliconFlow through `SILICONFLOW_BASE_URL`, `SILICONFLOW_API_KEY`, and the edge, embedding, and analysis model names. Kafka, Elasticsearch, and LlamaIndex remain candidates in the ADRs and are off the current runtime path.
 
 Technology choices and constraints follow the [ADR index](docs/adr/README.md).
 

@@ -109,15 +109,22 @@ class FakeMilvusSchemaBuilder:
 class BgeM3HttpEmbedderTests(unittest.TestCase):
     @patch("urllib.request.urlopen")
     def test_sends_text_and_parses_single_vector(self, urlopen: Any) -> None:
-        urlopen.return_value = FakeResponse(b"[[0.1, 0.2, 0.3]]")
+        urlopen.return_value = FakeResponse(
+            b'{"data":[{"embedding":[0.1, 0.2, 0.3]}]}'
+        )
         embedder = BgeM3HttpEmbedder(
-            endpoint="http://embedding.internal/embed", api_key="test-token"
+            base_url="https://api.siliconflow.cn/v1",
+            model="BAAI/bge-m3",
+            api_key="test-token",
         )
 
         vector = embedder.embed("database timeout")
 
         request = urlopen.call_args.args[0]
-        self.assertEqual(json.loads(request.data), {"inputs": "database timeout"})
+        self.assertEqual(
+            json.loads(request.data),
+            {"model": "BAAI/bge-m3", "input": "database timeout"},
+        )
         self.assertEqual(request.get_header("Authorization"), "Bearer test-token")
         self.assertEqual(vector, (0.1, 0.2, 0.3))
 

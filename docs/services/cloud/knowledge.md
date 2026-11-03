@@ -12,7 +12,7 @@ Read operations documents or historical cases, parse them into cases that carry 
 
 - JSON Lines is supported, as are Markdown, TXT, PDF, DOCX, PPTX, and HTML. The latter group is converted with MarkItDown.
 - A document must explicitly contain `Summary` and `Resolution`. Missing fields fail the import. A model does not fill in facts.
-- Embeddings use bge-m3 over HTTP, or the deterministic mock provided by the retrieval service.
+- Embeddings use `SILICONFLOW_BASE_URL`, `CLOUD_EMBEDDING_MODEL` (`BAAI/bge-m3`), and `SILICONFLOW_API_KEY`.
 - The IP field used at ingestion is the same field used by the online retrieval filter.
 
 Samples are in [examples/knowledge](../../../examples/knowledge/README.md). The import command is in [local development](../../local-development.md).

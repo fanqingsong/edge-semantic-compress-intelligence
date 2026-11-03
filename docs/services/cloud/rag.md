@@ -10,6 +10,6 @@ Produce a root-cause analysis from one `EdgeEvent` and the cases returned by [re
 
 The prompt is fixed as three sections: `<edge_summary>`, `<retrieved_cases>`, and `<analysis_instructions>`. Summaries and cases are escaped as untrusted data and cannot be treated as instructions.
 
-The analysis model may be a deterministic mock or an OpenAI-compatible API. The orchestration framework is still an open choice under ADR-0007. The current runtime path does not use LlamaIndex or LangChain.
+The analysis model is the OpenAI-compatible API at `SILICONFLOW_BASE_URL`, using `CLOUD_ANALYSIS_MODEL` (`Qwen/Qwen2.5-72B-Instruct`) and `SILICONFLOW_API_KEY`. The orchestration framework is still an open choice under ADR-0007. The current runtime path does not use LlamaIndex or LangChain.
 
 The [cloud agent](agent.md) calls this service and writes the result to `analyses.sqlite3`.

@@ -14,3 +14,4 @@ htmlcov/
 /examples/logs/*.jsonl
 !/examples/logs/payments-incident.jsonl
 /deploy/mosquitto/certs/
+.env

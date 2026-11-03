@@ -15,11 +15,6 @@ from cloud.retrieval.adapters import (
     MilvusVectorIndex,
     ensure_milvus_collection,
 )
-from cloud.retrieval.hashing import (
-    DeterministicHashEmbedder,
-)
-
-
 SUPPORTED_EXTENSIONS = {
     ".docx",
     ".html",
@@ -52,13 +47,13 @@ def build_parser() -> argparse.ArgumentParser:
         default=int(os.environ.get("CLOUD_VECTOR_DIMENSION", "1024")),
     )
     parser.add_argument(
-        "--embedding-mode",
-        choices=("http", "mock"),
-        default=os.environ.get("CLOUD_EMBEDDING_MODE", "http"),
+        "--embedding-url",
+        default=os.environ.get("CLOUD_EMBEDDING_URL")
+        or os.environ.get("SILICONFLOW_BASE_URL", "https://api.siliconflow.cn/v1"),
     )
     parser.add_argument(
-        "--embedding-url",
-        default=os.environ.get("CLOUD_EMBEDDING_URL", "http://127.0.0.1:8081/embed"),
+        "--embedding-model",
+        default=os.environ.get("CLOUD_EMBEDDING_MODEL", "BAAI/bge-m3"),
     )
     return parser
 
@@ -104,10 +99,10 @@ def main() -> None:
             args.collection,
             vector_dimension=args.vector_dimension,
         )
-        embedder = (
-            BgeM3HttpEmbedder(args.embedding_url)
-            if args.embedding_mode == "http"
-            else DeterministicHashEmbedder(args.vector_dimension)
+        embedder = BgeM3HttpEmbedder(
+            base_url=args.embedding_url,
+            model=args.embedding_model,
+            api_key=os.environ.get("SILICONFLOW_API_KEY"),
         )
         ingestor = KnowledgeIngestor(RawDocumentKnowledgeParser(), embedder, index)
 

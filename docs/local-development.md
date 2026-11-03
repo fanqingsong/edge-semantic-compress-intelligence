@@ -20,10 +20,13 @@ bash scripts/generate-dev-mqtt-certs.sh
 The [edge agent](services/edge/agent.md) assembles [filtering](services/edge/filtering.md), [summarization](services/edge/summarization.md), and [transport](services/edge/transport.md).
 
 ```bash
+cp .env.example .env
 docker compose up -d --build --wait
 ```
 
-Fluent Bit reads `./examples/logs/*.jsonl` and listens for syslog on UDP `5514`, then `POST`s batches to the edge agent on `8090`. The development environment uses the mock summarizer by default. Set `EDGE_SUMMARIZER=llama_cpp` and configure `EDGE_LLAMA_URL` to call a local llama.cpp server. The SQLite outbox defaults to a 100 MiB limit and rejects new messages when full.
+Put the SiliconFlow key in `.env` as `SILICONFLOW_API_KEY`. Compose reads that file for `SILICONFLOW_BASE_URL`, the key, and the model names. `.env` stays out of git.
+
+Fluent Bit reads `./examples/logs/*.jsonl` and listens for syslog on UDP `5514`, then `POST`s batches to the edge agent on `8090`. The edge summarizer uses `SILICONFLOW_BASE_URL`, `EDGE_LLAMA_MODEL` (`Qwen/Qwen2-1.5B-Instruct`), and `SILICONFLOW_API_KEY`. The SQLite outbox defaults to a 100 MiB limit and rejects new messages when full.
 
 MQTT uses mTLS on port `8883` against EMQX. Regenerate the development certificates after pulling this change so the broker certificate includes `DNS:emqx` and the bridge client certificate exists. The edge agent certificate may only publish to `edge/events`. The `mqtt-kafka-bridge` certificate may only subscribe to that topic. Anonymous and plaintext connections are not open. Development certificates are for local use only. The bridge writes the MessagePack payload to the Kafka topic `edge.events`, and the cloud agent consumes that topic. Kafka stays on the Compose network.
 
@@ -40,7 +43,7 @@ Port backfill is taken only from an explicit port field or from log text that ca
 
 The [cloud agent](services/cloud/agent.md) consumes the Kafka topic `edge.events` and calls [retrieval](services/cloud/retrieval.md) and [RAG](services/cloud/rag.md). It starts with the edge agent through the `docker compose up` command above. Milvus depends on etcd and MinIO. The local stack runs one cloud agent replica.
 
-The development environment uses a mock embedding model and analysis model by default. Switch them with `CLOUD_EMBEDDING_MODE`, `CLOUD_EMBEDDING_URL`, `CLOUD_ANALYSIS_MODE`, and `CLOUD_ANALYSIS_URL`.
+The cloud agent uses the same `SILICONFLOW_BASE_URL` and `SILICONFLOW_API_KEY`. Embedding uses `CLOUD_EMBEDDING_MODEL` (`BAAI/bge-m3`). Analysis uses `CLOUD_ANALYSIS_MODEL` (`Qwen/Qwen2.5-72B-Instruct`).
 
 Integration test for the retrieval adapter:
 

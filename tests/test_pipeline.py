@@ -3,10 +3,7 @@ import unittest
 from dataclasses import dataclass, field
 from typing import Mapping, Sequence
 
-from cloud.rag import (
-    DeterministicMockAnalysisModel,
-    RagService,
-)
+from cloud.rag import RagService
 from cloud.retrieval import (
     HybridRetriever,
     VectorHit,
@@ -16,10 +13,8 @@ from edge.filtering import (
     FilterConfig,
     RuleFilter,
 )
-from edge.summarization import (
-    DeterministicMockSummarizer,
-    SummaryPipeline,
-)
+from edge.summarization import SummaryPipeline
+from tests.standins import FixedAnalysisModel, LogBatchSummarizer
 from tests.edge_cloud_pipeline import EdgeCloudPipeline
 
 
@@ -80,9 +75,9 @@ class EdgeCloudPipelineTests(unittest.TestCase):
         index = FixedIndex()
         pipeline = EdgeCloudPipeline(
             rule_filter=RuleFilter(FilterConfig(repeat_threshold=5)),
-            summarizer=SummaryPipeline(DeterministicMockSummarizer()),
+            summarizer=SummaryPipeline(LogBatchSummarizer()),
             rag_service=RagService(
-                HybridRetriever(embedder, index), DeterministicMockAnalysisModel()
+                HybridRetriever(embedder, index), FixedAnalysisModel()
             ),
         )
 
@@ -98,7 +93,9 @@ class EdgeCloudPipelineTests(unittest.TestCase):
         self.assertEqual(report.events[0].target_port, 5432)
         self.assertEqual(report.events[0].error_code, "ERR-42")
         self.assertEqual(report.analyses[0].cases[0].case_id, "CASE-1")
-        self.assertIn("Mock response", report.analyses[0].answer.root_cause)
+        self.assertEqual(
+            report.analyses[0].answer.root_cause, "Likely connection saturation"
+        )
         self.assertEqual(
             report.dropped_by_reason[DropReason.BLACKLISTED_KEYWORD], 1
         )
@@ -108,10 +105,10 @@ class EdgeCloudPipelineTests(unittest.TestCase):
     def test_all_filtered_batch_has_no_events_or_analyses(self) -> None:
         pipeline = EdgeCloudPipeline(
             rule_filter=RuleFilter(),
-            summarizer=SummaryPipeline(DeterministicMockSummarizer()),
+            summarizer=SummaryPipeline(LogBatchSummarizer()),
             rag_service=RagService(
                 HybridRetriever(FixedEmbedder(), FixedIndex()),
-                DeterministicMockAnalysisModel(),
+                FixedAnalysisModel(),
             ),
         )
 

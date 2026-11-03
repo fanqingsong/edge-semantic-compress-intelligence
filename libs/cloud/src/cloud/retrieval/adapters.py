@@ -13,6 +13,7 @@ from cloud.retrieval.hybrid import (
     VectorHit,
     VectorRecord,
 )
+from shared.openai import openai_url
 
 
 class EmbeddingServiceError(RuntimeError):
@@ -25,13 +26,16 @@ class MilvusSchemaError(ValueError):
 
 @dataclass(frozen=True, slots=True)
 class BgeM3HttpEmbedder:
-    endpoint: str
+    base_url: str
+    model: str = "BAAI/bge-m3"
     timeout_seconds: float = 10.0
     api_key: str | None = None
 
     def embed(self, text: str) -> Sequence[float]:
-        if not self.endpoint.strip():
-            raise ValueError("embedding endpoint must not be empty")
+        if not self.base_url.strip():
+            raise ValueError("embedding base_url must not be empty")
+        if not self.model.strip():
+            raise ValueError("embedding model must not be empty")
         if not text.strip():
             raise ValueError("embedding text must not be empty")
 
@@ -39,8 +43,8 @@ class BgeM3HttpEmbedder:
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
         request = urllib.request.Request(
-            self.endpoint,
-            data=json.dumps({"inputs": text}).encode("utf-8"),
+            openai_url(self.base_url, "embeddings"),
+            data=json.dumps({"model": self.model, "input": text}).encode("utf-8"),
             headers=headers,
             method="POST",
         )
@@ -59,6 +63,13 @@ class BgeM3HttpEmbedder:
             raise EmbeddingServiceError("embedding service returned invalid JSON") from error
 
         vector = payload
+        if isinstance(payload, dict):
+            try:
+                vector = payload["data"][0]["embedding"]
+            except (KeyError, IndexError, TypeError) as error:
+                raise EmbeddingServiceError(
+                    "embedding response must be a non-empty vector"
+                ) from error
         if (
             isinstance(vector, list)
             and vector

@@ -14,10 +14,8 @@ from edge.agent.http import (
 )
 from edge.agent.runtime import EdgeRuntime
 from edge.filtering import RuleFilter
-from edge.summarization import (
-    DeterministicMockSummarizer,
-    SummaryPipeline,
-)
+from edge.summarization import SummaryPipeline
+from tests.standins import LogBatchSummarizer
 from edge.transport import FlushReport
 
 
@@ -36,7 +34,7 @@ class EdgeHttpTests(unittest.TestCase):
         self.transport = RecordingTransport()
         runtime = EdgeRuntime(
             RuleFilter(),
-            SummaryPipeline(DeterministicMockSummarizer()),
+            SummaryPipeline(LogBatchSummarizer()),
             self.transport,
         )
         self.server = create_edge_server(

@@ -10,10 +10,7 @@ from edge.agent.http import (
 )
 from edge.agent.runtime import EdgeRuntime
 from edge.filtering.service import RuleFilter
-from edge.summarization.pipeline import (
-    DeterministicMockSummarizer,
-    SummaryPipeline,
-)
+from edge.summarization.pipeline import SummaryPipeline
 from edge.summarization.slm import (
     LlamaCppSummarizer,
 )
@@ -53,13 +50,18 @@ def build_parser() -> argparse.ArgumentParser:
         default=int(os.environ.get("EDGE_OUTBOX_MAX_BYTES", str(100 * 1024 * 1024))),
     )
     parser.add_argument(
-        "--summarizer",
-        choices=("llama_cpp", "mock"),
-        default=os.environ.get("EDGE_SUMMARIZER", "llama_cpp"),
+        "--llama-url",
+        default=os.environ.get("EDGE_LLAMA_URL")
+        or os.environ.get("SILICONFLOW_BASE_URL", "https://api.siliconflow.cn/v1"),
     )
     parser.add_argument(
-        "--llama-url",
-        default=os.environ.get("EDGE_LLAMA_URL", "http://127.0.0.1:8080"),
+        "--llama-model",
+        default=os.environ.get("EDGE_LLAMA_MODEL", "local-edge-slm"),
+    )
+    parser.add_argument(
+        "--llama-timeout",
+        type=float,
+        default=float(os.environ.get("EDGE_LLAMA_TIMEOUT", "2")),
     )
     parser.add_argument(
         "--max-batch-bytes",
@@ -92,14 +94,16 @@ def main() -> None:
     outbox = SQLiteOutbox(args.outbox, max_bytes=args.max_outbox_bytes)
     mqtt_client.connect_async(args.mqtt_host, args.mqtt_port, keepalive=30)
     mqtt_client.loop_start()
-    summarizer = (
-        DeterministicMockSummarizer()
-        if args.summarizer == "mock"
-        else LlamaCppSummarizer(base_url=args.llama_url)
-    )
     runtime = EdgeRuntime(
         rule_filter=RuleFilter(),
-        summarizer=SummaryPipeline(summarizer),
+        summarizer=SummaryPipeline(
+            LlamaCppSummarizer(
+                base_url=args.llama_url,
+                model=args.llama_model,
+                timeout_seconds=args.llama_timeout,
+                api_key=os.environ.get("SILICONFLOW_API_KEY"),
+            )
+        ),
         transport=ReliableMqttTransport(
             mqtt_client,
             outbox,

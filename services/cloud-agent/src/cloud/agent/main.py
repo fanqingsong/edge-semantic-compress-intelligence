@@ -16,10 +16,7 @@ from cloud.feedback.service import (
     PromptFeedbackService,
     SQLiteFeedbackStore,
 )
-from cloud.rag.analysis import (
-    DeterministicMockAnalysisModel,
-    RagService,
-)
+from cloud.rag.analysis import RagService
 from cloud.rag.models import (
     OpenAICompatibleAnalysisModel,
 )
@@ -27,9 +24,6 @@ from cloud.retrieval.adapters import (
     BgeM3HttpEmbedder,
     MilvusVectorIndex,
     ensure_milvus_collection,
-)
-from cloud.retrieval.hashing import (
-    DeterministicHashEmbedder,
 )
 from cloud.retrieval.hybrid import (
     HybridRetriever,
@@ -61,26 +55,27 @@ def build_parser() -> argparse.ArgumentParser:
         default=int(os.environ.get("CLOUD_VECTOR_DIMENSION", "1024")),
     )
     parser.add_argument(
-        "--embedding-mode",
-        choices=("http", "mock"),
-        default=os.environ.get("CLOUD_EMBEDDING_MODE", "http"),
-    )
-    parser.add_argument(
         "--embedding-url",
-        default=os.environ.get("CLOUD_EMBEDDING_URL", "http://127.0.0.1:8081/embed"),
+        default=os.environ.get("CLOUD_EMBEDDING_URL")
+        or os.environ.get("SILICONFLOW_BASE_URL", "https://api.siliconflow.cn/v1"),
     )
     parser.add_argument(
-        "--analysis-mode",
-        choices=("openai", "mock"),
-        default=os.environ.get("CLOUD_ANALYSIS_MODE", "mock"),
+        "--embedding-model",
+        default=os.environ.get("CLOUD_EMBEDDING_MODEL", "BAAI/bge-m3"),
     )
     parser.add_argument(
         "--analysis-url",
-        default=os.environ.get("CLOUD_ANALYSIS_URL", "http://127.0.0.1:8000"),
+        default=os.environ.get("CLOUD_ANALYSIS_URL")
+        or os.environ.get("SILICONFLOW_BASE_URL", "https://api.siliconflow.cn/v1"),
     )
     parser.add_argument(
         "--analysis-model",
-        default=os.environ.get("CLOUD_ANALYSIS_MODEL", "local-cloud-llm"),
+        default=os.environ.get("CLOUD_ANALYSIS_MODEL", "Qwen/Qwen2.5-72B-Instruct"),
+    )
+    parser.add_argument(
+        "--analysis-timeout",
+        type=float,
+        default=float(os.environ.get("CLOUD_ANALYSIS_TIMEOUT", "60")),
     )
     parser.add_argument(
         "--processed-db",
@@ -114,19 +109,17 @@ def main() -> None:
         args.collection,
         vector_dimension=args.vector_dimension,
     )
-    embedder = (
-        BgeM3HttpEmbedder(endpoint=args.embedding_url)
-        if args.embedding_mode == "http"
-        else DeterministicHashEmbedder(dimension=args.vector_dimension)
+    api_key = os.environ.get("SILICONFLOW_API_KEY")
+    embedder = BgeM3HttpEmbedder(
+        base_url=args.embedding_url,
+        model=args.embedding_model,
+        api_key=api_key,
     )
-    analysis_model = (
-        OpenAICompatibleAnalysisModel(
-            base_url=args.analysis_url,
-            model=args.analysis_model,
-            api_key=os.environ.get("CLOUD_ANALYSIS_API_KEY"),
-        )
-        if args.analysis_mode == "openai"
-        else DeterministicMockAnalysisModel()
+    analysis_model = OpenAICompatibleAnalysisModel(
+        base_url=args.analysis_url,
+        model=args.analysis_model,
+        api_key=api_key,
+        timeout_seconds=args.analysis_timeout,
     )
     rag_service = RagService(
         retriever=HybridRetriever(embedder, vector_index),

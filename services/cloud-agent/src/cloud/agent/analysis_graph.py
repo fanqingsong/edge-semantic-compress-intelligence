@@ -11,10 +11,10 @@ Topology::
                  |
                  +-- HybridRetriever
                  |     no target_ip --> no cases
-                 |     else embed summary (BGE-M3 or hash mock)
+                 |     else embed summary (BGE-M3)
                  |          Milvus top 5, filtered to that IP
                  +-- prompt: edge_summary + retrieved_cases
-                 +-- model: OpenAI-compatible LLM or mock
+                 +-- model: OpenAI-compatible LLM
                  |
                  v
               save (SQLite analyses, upsert by event_id)
@@ -77,8 +77,7 @@ def build_analysis_graph(
         ``HybridRetriever`` returns nothing when ``target_ip`` is missing.
         Otherwise it embeds ``summary`` and searches Milvus for the top 5
         cases with that same IP. The prompt treats the summary and the cases
-        as untrusted data. The model is the OpenAI-compatible endpoint or the
-        deterministic mock.
+        as untrusted data. The model is the OpenAI-compatible endpoint.
         """
         return {"result": rag_service.analyze(state["event"])}
 

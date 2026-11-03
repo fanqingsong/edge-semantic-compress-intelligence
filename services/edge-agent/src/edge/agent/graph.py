@@ -15,8 +15,8 @@ Runtime path (assembled in ``edge.agent.main``, driven by ``EdgeRuntime``):
    counts, published count, and how many events are still in the outbox).
 
 Nothing in the graph talks to the network directly. Filtering, summarization,
-and delivery are injected so the same graph runs with the mock summarizer or
-llama.cpp, and with the SQLite outbox in front of MQTT.
+and delivery are injected. The runtime summarizer is llama.cpp, and delivery
+goes through the SQLite outbox before MQTT.
 
 Topology of one batch::
 
@@ -44,7 +44,7 @@ Topology of one batch::
                    |   summarize_next
                    |      |
                    |      +-- SummaryPipeline
-                   |      |     SLM (llama.cpp or mock)
+                   |      |     SLM (llama.cpp)
                    |      |       --> EntityFallback (ip / port / error_code)
                    |      |       --> EdgeEvent
                    |      |
@@ -147,9 +147,8 @@ def build_edge_graph(rule_filter: RuleFilter, summarizer: SummaryPipeline, trans
     def summarize_next(state: EdgeGraphState) -> EdgeGraphState:
         """Summarize group ``index`` and hand the event to the outbox.
 
-        ``SummaryPipeline.summarize`` asks the configured model (llama.cpp or
-        the deterministic mock) for structured fields, then ``EntityFallback``
-        keeps ``target_ip``, ``target_port``, and ``error_code`` only when they
+        ``SummaryPipeline.summarize`` asks the configured chat model for structured fields, then
+        ``EntityFallback`` keeps ``target_ip``, ``target_port``, and ``error_code`` only when they
         actually appear in the source records. ``EdgeEvent.from_mapping``
         rejects a summary that breaks the contract.
 

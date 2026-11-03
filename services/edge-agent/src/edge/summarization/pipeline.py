@@ -5,7 +5,6 @@ import re
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Callable, Protocol
-from uuid import uuid4
 
 from shared.contract import ContractError, EdgeEvent
 from edge.filtering.service import LogRecord
@@ -14,26 +13,6 @@ from edge.filtering.service import LogRecord
 class StructuredSummarizer(Protocol):
     def summarize(self, records: Sequence[LogRecord]) -> Mapping[str, object]:
         """Return structured fields for one service's log batch."""
-
-
-@dataclass(frozen=True, slots=True)
-class DeterministicMockSummarizer:
-    def summarize(self, records: Sequence[LogRecord]) -> Mapping[str, object]:
-        if not records:
-            raise ValueError("records must not be empty")
-
-        services = {record.service for record in records}
-        if len(services) != 1:
-            raise ValueError("a summary batch must contain exactly one service")
-
-        service = records[0].service
-        return {
-            "event_id": str(uuid4()),
-            "schema_version": "1.0",
-            "timestamp": records[-1].timestamp,
-            "service": service,
-            "summary": f"{len(records)} error log entries for {service}",
-        }
 
 
 class EntityFallback:

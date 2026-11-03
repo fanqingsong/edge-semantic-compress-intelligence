@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from cloud.rag.analysis import AnalysisAnswer
+from shared.openai import openai_url
 
 
 class AnalysisModelError(RuntimeError):
@@ -47,7 +48,7 @@ class OpenAICompatibleAnalysisModel:
             ],
         }
         request = urllib.request.Request(
-            f"{self.base_url.rstrip('/')}/v1/chat/completions",
+            openai_url(self.base_url, "chat/completions"),
             data=json.dumps(body).encode("utf-8"),
             headers=headers,
             method="POST",

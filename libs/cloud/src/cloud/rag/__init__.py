@@ -4,7 +4,6 @@ from cloud.rag.analysis import (
     AnalysisAnswer,
     AnalysisModel,
     CaseRetriever,
-    DeterministicMockAnalysisModel,
     RagResult,
     RagService,
 )
@@ -19,7 +18,6 @@ __all__ = [
     "AnalysisModel",
     "AnalysisModelError",
     "CaseRetriever",
-    "DeterministicMockAnalysisModel",
     "OpenAICompatibleAnalysisModel",
     "RagResult",
     "RagService",

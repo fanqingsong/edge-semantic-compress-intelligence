@@ -17,14 +17,11 @@ from shared.contract import EdgeEvent
 from edge.agent.runtime import EdgeRuntime
 from edge.filtering import RuleFilter
 from cloud.rag import (
-    DeterministicMockAnalysisModel,
     RagService,
     RetrievedCase,
 )
-from edge.summarization import (
-    DeterministicMockSummarizer,
-    SummaryPipeline,
-)
+from edge.summarization import SummaryPipeline
+from tests.standins import FixedAnalysisModel, LogBatchSummarizer
 from shared.codec import MessagePackCodec
 from shared.mqtt import (
     configure_mtls,
@@ -152,7 +149,7 @@ class LocalMqttIntegrationTests(unittest.TestCase):
                 def retrieve(self, event: EdgeEvent) -> Sequence[RetrievedCase]:
                     return ()
 
-            rag_service = RagService(EmptyRetriever(), DeterministicMockAnalysisModel())
+            rag_service = RagService(EmptyRetriever(), FixedAnalysisModel())
             consumer = MqttEventConsumer(
                 topic,
                 MessagePackCodec(),
@@ -194,7 +191,7 @@ class LocalMqttIntegrationTests(unittest.TestCase):
             publisher.on_connect = lambda *args: publisher_connected.set()
             edge_runtime = EdgeRuntime(
                 RuleFilter(),
-                SummaryPipeline(DeterministicMockSummarizer()),
+                SummaryPipeline(LogBatchSummarizer()),
                 ReliableMqttTransport(
                     publisher,
                     outbox,
@@ -233,7 +230,9 @@ class LocalMqttIntegrationTests(unittest.TestCase):
                 self.assertEqual(report.events[0].target_ip, "192.0.2.10")
                 self.assertEqual(report.events[0].target_port, 5432)
                 self.assertEqual(report.events[0].error_code, "ERR-503")
-                self.assertIn("Mock response", analyses[0].answer.root_cause)
+                self.assertEqual(
+                    analyses[0].answer.root_cause, "Likely connection saturation"
+                )
             finally:
                 publisher.disconnect()
                 publisher.loop_stop()

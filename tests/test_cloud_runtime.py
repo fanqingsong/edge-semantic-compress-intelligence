@@ -6,19 +6,14 @@ from cloud.agent.runtime import (
     RagEventHandler,
     SQLiteAnalysisStore,
 )
-from cloud.retrieval.hashing import (
-    DeterministicHashEmbedder,
-)
 from shared.contract import EdgeEvent
 from cloud.feedback import (
     FeedbackStatus,
     PromptFeedbackService,
     SQLiteFeedbackStore,
 )
-from cloud.rag import (
-    DeterministicMockAnalysisModel,
-    RagService,
-)
+from cloud.rag import RagService
+from tests.standins import FixedAnalysisModel
 
 
 class EmptyRetriever:
@@ -27,15 +22,6 @@ class EmptyRetriever:
 
 
 class CloudRuntimeTests(unittest.TestCase):
-    def test_mock_embedding_is_deterministic_and_dimensioned(self) -> None:
-        embedder = DeterministicHashEmbedder(dimension=16)
-
-        first = embedder.embed("database timeout")
-        second = embedder.embed("database timeout")
-
-        self.assertEqual(len(first), 16)
-        self.assertEqual(first, second)
-
     def test_handler_persists_rag_result_by_event_id(self) -> None:
         event = EdgeEvent(
             event_id="550e8400-e29b-41d4-a716-446655440000",
@@ -43,7 +29,7 @@ class CloudRuntimeTests(unittest.TestCase):
             service="payments",
             summary="Database connection timed out",
         )
-        rag_service = RagService(EmptyRetriever(), DeterministicMockAnalysisModel())
+        rag_service = RagService(EmptyRetriever(), FixedAnalysisModel())
         with tempfile.TemporaryDirectory() as directory:
             store = SQLiteAnalysisStore(str(Path(directory) / "analyses.sqlite3"))
             handler = RagEventHandler(rag_service, store)
@@ -52,7 +38,9 @@ class CloudRuntimeTests(unittest.TestCase):
             result = store.get(event.event_id)
 
             self.assertEqual(result["event_id"], event.event_id)
-            self.assertIn("Mock response", result["answer"]["root_cause"])
+            self.assertEqual(
+                result["answer"]["root_cause"], "Likely connection saturation"
+            )
 
     def test_rag_handler_records_feedback_without_raw_log(self) -> None:
         event = EdgeEvent(
@@ -61,7 +49,7 @@ class CloudRuntimeTests(unittest.TestCase):
             service="payments",
             summary="Database timeout",
         )
-        rag_service = RagService(EmptyRetriever(), DeterministicMockAnalysisModel())
+        rag_service = RagService(EmptyRetriever(), FixedAnalysisModel())
         with tempfile.TemporaryDirectory() as directory:
             analysis_store = SQLiteAnalysisStore(
                 str(Path(directory) / "analyses.sqlite3")

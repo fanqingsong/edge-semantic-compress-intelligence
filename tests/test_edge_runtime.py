@@ -9,10 +9,8 @@ from edge.filtering import (
     FilterConfig,
     RuleFilter,
 )
-from edge.summarization import (
-    DeterministicMockSummarizer,
-    SummaryPipeline,
-)
+from edge.summarization import SummaryPipeline
+from tests.standins import LogBatchSummarizer
 from edge.transport import FlushReport
 
 
@@ -42,7 +40,7 @@ class EdgeRuntimeTests(unittest.TestCase):
         transport = RecordingTransport()
         runtime = EdgeRuntime(
             RuleFilter(FilterConfig(repeat_threshold=5)),
-            SummaryPipeline(DeterministicMockSummarizer()),
+            SummaryPipeline(LogBatchSummarizer()),
             transport,
         )
 
@@ -68,7 +66,7 @@ class EdgeRuntimeTests(unittest.TestCase):
         transport = RecordingTransport(report=FlushReport(published=0, pending=3))
         runtime = EdgeRuntime(
             RuleFilter(),
-            SummaryPipeline(DeterministicMockSummarizer()),
+            SummaryPipeline(LogBatchSummarizer()),
             transport,
         )
 
@@ -82,7 +80,7 @@ class EdgeRuntimeTests(unittest.TestCase):
         transport = RecordingTransport()
         runtime = EdgeRuntime(
             RuleFilter(),
-            SummaryPipeline(DeterministicMockSummarizer()),
+            SummaryPipeline(LogBatchSummarizer()),
             transport,
         )
 

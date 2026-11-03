@@ -14,11 +14,10 @@ from cloud.agent.consumer import (
 )
 from shared.contract import EdgeEvent
 from cloud.rag import (
-    AnalysisAnswer,
-    DeterministicMockAnalysisModel,
     RagService,
     RetrievedCase,
 )
+from tests.standins import FixedAnalysisModel
 from shared.codec import MessagePackCodec
 
 
@@ -154,7 +153,7 @@ class MqttEventConsumerTests(unittest.TestCase):
             service="payments",
             summary="Database connection timed out",
         )
-        rag_service = RagService(EmptyRetriever(), DeterministicMockAnalysisModel())
+        rag_service = RagService(EmptyRetriever(), FixedAnalysisModel())
         analyses = []
         client = FakeClient()
         store = SQLiteProcessedEventStore(":memory:")
@@ -173,7 +172,7 @@ class MqttEventConsumerTests(unittest.TestCase):
 
         self.assertEqual(result.disposition, "processed")
         self.assertEqual(analyses[0].event_id, event.event_id)
-        self.assertIn("Mock response", analyses[0].answer.root_cause)
+        self.assertEqual(analyses[0].answer.root_cause, "Likely connection saturation")
         self.assertEqual(client.acks, [(22, 1)])
 
     def test_successful_processing_is_persisted_before_ack(self) -> None:

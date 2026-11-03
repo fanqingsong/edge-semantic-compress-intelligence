@@ -12,6 +12,7 @@ from edge.filtering.service import LogRecord
 from edge.summarization.pipeline import (
     StructuredSummarizer,
 )
+from shared.openai import openai_url
 
 
 SUMMARY_SCHEMA: dict[str, Any] = {
@@ -79,6 +80,7 @@ class LlamaCppSummarizer(StructuredSummarizer):
     base_url: str = "http://127.0.0.1:8080"
     model: str = "local-edge-slm"
     timeout_seconds: float = 2.0
+    api_key: str | None = None
 
     def summarize(self, records: Sequence[LogRecord]) -> Mapping[str, object]:
         if not records:
@@ -110,10 +112,13 @@ class LlamaCppSummarizer(StructuredSummarizer):
             ],
             "response_format": {"type": "json_object"},
         }
+        headers = {"Content-Type": "application/json"}
+        if self.api_key:
+            headers["Authorization"] = f"Bearer {self.api_key}"
         request = urllib.request.Request(
-            f"{self.base_url.rstrip('/')}/v1/chat/completions",
+            openai_url(self.base_url, "chat/completions"),
             data=json.dumps(request_payload).encode("utf-8"),
-            headers={"Content-Type": "application/json"},
+            headers=headers,
             method="POST",
         )
         try:

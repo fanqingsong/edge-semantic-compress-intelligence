@@ -34,25 +34,6 @@ class AnalysisModel(Protocol):
         """Generate an analysis from the assembled prompt."""
 
 
-class DeterministicMockAnalysisModel:
-    def generate(self, prompt: str) -> AnalysisAnswer:
-        if not all(
-            section in prompt
-            for section in (
-                "<edge_summary>",
-                "<retrieved_cases>",
-                "<analysis_instructions>",
-            )
-        ):
-            raise ValueError("prompt is missing a required RAG section")
-        return AnalysisAnswer(
-            root_cause="Mock response: no production model inference was performed.",
-            evidence=(),
-            recommendations=("Configure a production analysis model.",),
-            uncertainty="This response is a test fixture, not a diagnosis.",
-        )
-
-
 @dataclass(frozen=True, slots=True)
 class RagService:
     retriever: CaseRetriever

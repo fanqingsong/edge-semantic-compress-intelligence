@@ -10,7 +10,10 @@ services:
       EDGE_MQTT_PORT: "8883"
       EDGE_MQTT_TOPIC: edge/events
       EDGE_OUTBOX_PATH: /var/lib/edge-agent/outbox.sqlite3
-      EDGE_SUMMARIZER: ${EDGE_SUMMARIZER:-mock}
+      SILICONFLOW_BASE_URL: ${SILICONFLOW_BASE_URL:-https://api.siliconflow.cn/v1}
+      SILICONFLOW_API_KEY: ${SILICONFLOW_API_KEY:-}
+      EDGE_LLAMA_MODEL: ${EDGE_LLAMA_MODEL:-Qwen/Qwen2-1.5B-Instruct}
+      EDGE_LLAMA_TIMEOUT: ${EDGE_LLAMA_TIMEOUT:-30}
       EDGE_MQTT_CA_FILE: /run/mqtt/ca.crt
       EDGE_MQTT_CERT_FILE: /run/mqtt/edge-agent.crt
       EDGE_MQTT_KEY_FILE: /run/mqtt/edge-agent.key
@@ -61,8 +64,11 @@ services:
       CLOUD_MILVUS_URI: http://milvus:19530
       CLOUD_MILVUS_COLLECTION: ops_cases
       CLOUD_VECTOR_DIMENSION: "1024"
-      CLOUD_EMBEDDING_MODE: mock
-      CLOUD_ANALYSIS_MODE: mock
+      SILICONFLOW_BASE_URL: ${SILICONFLOW_BASE_URL:-https://api.siliconflow.cn/v1}
+      SILICONFLOW_API_KEY: ${SILICONFLOW_API_KEY:-}
+      CLOUD_EMBEDDING_MODEL: ${CLOUD_EMBEDDING_MODEL:-BAAI/bge-m3}
+      CLOUD_ANALYSIS_MODEL: ${CLOUD_ANALYSIS_MODEL:-Qwen/Qwen2.5-72B-Instruct}
+      CLOUD_ANALYSIS_TIMEOUT: ${CLOUD_ANALYSIS_TIMEOUT:-60}
       CLOUD_PROCESSED_DB: /var/lib/cloud/processed.sqlite3
       CLOUD_ANALYSIS_DB: /var/lib/cloud/analyses.sqlite3
       CLOUD_FEEDBACK_DB: /var/lib/cloud/feedback.sqlite3
@@ -87,10 +93,13 @@ services:
       - http://milvus:19530
       - --collection
       - ops_cases
-      - --embedding-mode
-      - ${CLOUD_EMBEDDING_MODE:-mock}
       - --embedding-url
-      - ${CLOUD_EMBEDDING_URL:-http://host.docker.internal:8081/embed}
+      - ${SILICONFLOW_BASE_URL:-https://api.siliconflow.cn/v1}
+      - --embedding-model
+      - ${CLOUD_EMBEDDING_MODEL:-BAAI/bge-m3}
+    environment:
+      SILICONFLOW_BASE_URL: ${SILICONFLOW_BASE_URL:-https://api.siliconflow.cn/v1}
+      SILICONFLOW_API_KEY: ${SILICONFLOW_API_KEY:-}
     volumes:
       - ./examples/knowledge/sources:/var/lib/knowledge:ro
     depends_on:

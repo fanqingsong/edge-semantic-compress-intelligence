@@ -17,4 +17,4 @@ Online retrieval rules:
 - When `target_ip` is missing, or there is no exact IP match, return an empty case set. Do not fall back to vector-only search.
 - Compare the IP again after the vector store returns results, so a misconfigured index cannot recall cases from another host.
 
-The Milvus collection adapter, the bge-m3 HTTP client, and the deterministic mock embedder all belong to the retrieval service.
+The Milvus collection adapter and the bge-m3 HTTP client belong to the retrieval service.

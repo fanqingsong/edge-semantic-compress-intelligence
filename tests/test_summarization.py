@@ -3,10 +3,8 @@ from dataclasses import dataclass
 from typing import Mapping, Sequence
 
 from edge.filtering import LogRecord
-from edge.summarization import (
-    DeterministicMockSummarizer,
-    SummaryPipeline,
-)
+from edge.summarization import SummaryPipeline
+from tests.standins import LogBatchSummarizer
 
 
 def record(
@@ -36,8 +34,8 @@ class FixedSummarizer:
 
 
 class SummaryPipelineTests(unittest.TestCase):
-    def test_mock_summarizer_produces_a_valid_event(self) -> None:
-        event = SummaryPipeline(DeterministicMockSummarizer()).summarize(
+    def test_batch_summarizer_produces_a_valid_event(self) -> None:
+        event = SummaryPipeline(LogBatchSummarizer()).summarize(
             [record("Database timeout"), record("Connection refused")]
         )
 
@@ -47,7 +45,7 @@ class SummaryPipelineTests(unittest.TestCase):
         self.assertIsNone(event.error_code)
 
     def test_missing_entities_are_recovered_from_original_records(self) -> None:
-        event = SummaryPipeline(DeterministicMockSummarizer()).summarize(
+        event = SummaryPipeline(LogBatchSummarizer()).summarize(
             [record("upstream 192.0.2.42 port 8443 failed with ERR-503")]
         )
 
@@ -78,26 +76,19 @@ class SummaryPipelineTests(unittest.TestCase):
         self.assertEqual(event.error_code, "ERR-503")
 
     def test_unlabeled_numbers_are_not_treated_as_ports(self) -> None:
-        event = SummaryPipeline(DeterministicMockSummarizer()).summarize(
+        event = SummaryPipeline(LogBatchSummarizer()).summarize(
             [record("request 5432 failed with ERR-503")]
         )
 
         self.assertIsNone(event.target_port)
 
     def test_invalid_entity_candidates_are_not_emitted(self) -> None:
-        event = SummaryPipeline(DeterministicMockSummarizer()).summarize(
+        event = SummaryPipeline(LogBatchSummarizer()).summarize(
             [record("upstream 999.999.999.999 failed with ERR-503")]
         )
 
         self.assertIsNone(event.target_ip)
         self.assertEqual(event.error_code, "ERR-503")
-
-    def test_mock_rejects_mixed_service_batches(self) -> None:
-        with self.assertRaisesRegex(ValueError, "exactly one service"):
-            SummaryPipeline(DeterministicMockSummarizer()).summarize(
-                [record("Database timeout"), record("Cache timeout", service="cache")]
-            )
-
 
 if __name__ == "__main__":
     unittest.main()

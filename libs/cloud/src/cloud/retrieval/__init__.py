@@ -7,9 +7,6 @@ from cloud.retrieval.adapters import (
     MilvusVectorIndex,
     ensure_milvus_collection,
 )
-from cloud.retrieval.hashing import (
-    DeterministicHashEmbedder,
-)
 from cloud.retrieval.hybrid import (
     HybridRetriever,
     RetrievedCase,
@@ -21,7 +18,6 @@ from cloud.retrieval.hybrid import (
 
 __all__ = [
     "BgeM3HttpEmbedder",
-    "DeterministicHashEmbedder",
     "EmbeddingServiceError",
     "HybridRetriever",
     "MilvusSchemaError",
