@@ -1,8 +1,8 @@
-"""LangGraphs that turn one edge event into a stored RAG analysis.
+"""LangGraph that accepts one edge-event delivery and runs it once.
 
-Two graphs, nested. ``cloud.agent.main`` wires the outer one to Kafka;
-``MqttEventConsumer`` can run the same outer graph against MQTT. The inner
-graph is the handler the outer graph calls.
+``cloud.agent.main`` wires this graph to Kafka. ``MqttEventConsumer`` can run
+the same graph against MQTT. The ``handle`` step calls the analysis graph in
+``cloud.agent.analysis_graph``.
 
 Runtime path:
 
@@ -58,30 +58,7 @@ Topology of one payload::
         +-- anything else -----------> seek back, sleep 1s, retry
             (handler exception is processing_failed, outside the graph)
 
-    analysis graph, invoked as handle
-        START --> analyze (RagService)
-                     |
-                     +-- HybridRetriever
-                     |     no target_ip --> no cases
-                     |     else embed summary (BGE-M3 or hash mock)
-                     |          Milvus top 5, filtered to that IP
-                     +-- prompt: edge_summary + retrieved_cases
-                     +-- model: OpenAI-compatible LLM or mock
-                     |
-                     v
-                  save (SQLite analyses, upsert by event_id)
-                     |
-                     v
-                  observe (PromptFeedbackService; skipped when unset)
-                     |
-                     +-- missing target_ip / target_port / error_code
-                     |     --> suggestion "missing_entities"
-                     +-- entities present but no retrieved cases
-                     |     --> suggestion "no_retrieved_cases"
-                     +-- otherwise write nothing
-                     |
-                     v
-                  END
+``handle`` is ``cloud.agent.analysis_graph``: analyze, save, then observe.
 """
 
 from __future__ import annotations
@@ -92,15 +69,8 @@ from typing import Literal, Protocol, TypedDict
 
 from langgraph.graph import END, START, StateGraph
 
-from cloud.feedback.service import PromptFeedbackService
-from cloud.rag.analysis import RagResult, RagService
 from shared.codec import MessageCodec
 from shared.contract import EdgeEvent
-
-
-class AnalysisStore(Protocol):
-    def save(self, result: RagResult) -> None:
-        """Persist one analysis result."""
 
 
 class ProcessedEventLookup(Protocol):
@@ -109,19 +79,6 @@ class ProcessedEventLookup(Protocol):
 
     def mark_processed(self, event_id: str, payload_hash: str) -> None:
         """Persist a successfully processed event identity."""
-
-
-class AnalysisState(TypedDict, total=False):
-    """Working memory for one analysis. The caller supplies ``event``.
-
-    ``result``
-        ``RagResult`` from ``analyze``: the event id, the retrieved cases,
-        and the model's root cause, evidence, recommendations, and uncertainty.
-        ``save`` and ``observe`` only read it.
-    """
-
-    event: EdgeEvent
-    result: RagResult
 
 
 class ConsumeState(TypedDict, total=False):
@@ -143,57 +100,6 @@ class ConsumeState(TypedDict, total=False):
     event_id: str
     payload_hash: str
     disposition: str
-
-
-def build_analysis_graph(
-    rag_service: RagService,
-    analysis_store: AnalysisStore,
-    feedback_service: PromptFeedbackService | None,
-):
-    """Compile analyze → save → observe.
-
-    ``RagEventHandler`` invokes this with ``{"event": event}``. A failure in
-    any node aborts the consume graph before ``mark_processed``, so the
-    delivery is retried instead of being acknowledged.
-    """
-
-    def analyze(state: AnalysisState) -> AnalysisState:
-        """Retrieve cases for the event and ask the analysis model.
-
-        ``HybridRetriever`` returns nothing when ``target_ip`` is missing.
-        Otherwise it embeds ``summary`` and searches Milvus for the top 5
-        cases with that same IP. The prompt treats the summary and the cases
-        as untrusted data. The model is the OpenAI-compatible endpoint or the
-        deterministic mock.
-        """
-        return {"result": rag_service.analyze(state["event"])}
-
-    def save(state: AnalysisState) -> AnalysisState:
-        """Upsert the analysis JSON, keyed by ``event_id``."""
-        analysis_store.save(state["result"])
-        return {}
-
-    def observe(state: AnalysisState) -> AnalysisState:
-        """Record a prompt suggestion when this event shows a summary gap.
-
-        Missing ``target_ip``, ``target_port``, or ``error_code`` produces a
-        ``missing_entities`` suggestion. Entities present but zero retrieved
-        cases produce ``no_retrieved_cases``. A complete event with cases
-        writes nothing. No suggestion is written when feedback is not wired.
-        """
-        if feedback_service is not None:
-            feedback_service.observe(state["event"], state["result"])
-        return {}
-
-    builder = StateGraph(AnalysisState)
-    builder.add_node("analyze", analyze)
-    builder.add_node("save", save)
-    builder.add_node("observe", observe)
-    builder.add_edge(START, "analyze")
-    builder.add_edge("analyze", "save")
-    builder.add_edge("save", "observe")
-    builder.add_edge("observe", END)
-    return builder.compile()
 
 
 def build_consume_graph(
@@ -262,13 +168,16 @@ def build_consume_graph(
         return END
 
     builder = StateGraph(ConsumeState)
+
     builder.add_node("decode", decode)
     builder.add_node("classify", classify)
     builder.add_node("handle", handle)
     builder.add_node("mark_processed", mark_processed)
+
     builder.add_edge(START, "decode")
     builder.add_conditional_edges("decode", route_after_decode)
     builder.add_conditional_edges("classify", route_after_classify)
     builder.add_edge("handle", "mark_processed")
     builder.add_edge("mark_processed", END)
+
     return builder.compile()

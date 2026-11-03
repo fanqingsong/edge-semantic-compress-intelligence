@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterator, Protocol
 
-from cloud.agent.graph import build_consume_graph
+from cloud.agent.consume_graph import build_consume_graph
 from shared.codec import MessageCodec
 from shared.contract import EdgeEvent
 

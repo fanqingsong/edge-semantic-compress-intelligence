@@ -8,7 +8,7 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Iterator
 
-from cloud.agent.graph import build_analysis_graph
+from cloud.agent.analysis_graph import build_analysis_graph
 from cloud.feedback.service import (
     PromptFeedbackService,
 )
