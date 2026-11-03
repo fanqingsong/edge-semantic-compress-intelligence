@@ -8,7 +8,7 @@ Code: [`libs/shared/src/shared`](../../libs/shared/src/shared)
 
 - `EdgeEvent` is the only business contract from the edge to the cloud. The machine-readable definition of schema `1.0` is [schemas/edge-event-v1.schema.json](../../schemas/edge-event-v1.schema.json).
 - MessagePack encode and decode are used by the transport service and the cloud agent. JSON only constrains model output.
-- The MQTT client factory and mTLS configuration are used by the edge agent and the MQTT-to-Kafka bridge.
+- The MQTT client factory is used by the edge agent and the MQTT-to-Kafka bridge.
 
 ## Contract
 

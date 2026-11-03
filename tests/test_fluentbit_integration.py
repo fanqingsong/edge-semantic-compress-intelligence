@@ -11,10 +11,7 @@ from typing import Any
 from uuid import uuid4
 
 from shared.codec import MessagePackCodec
-from shared.mqtt import (
-    configure_mtls,
-    create_mqtt_v5_client,
-)
+from shared.mqtt import create_mqtt_v5_client
 
 
 @unittest.skipUnless(
@@ -24,7 +21,7 @@ from shared.mqtt import (
 class FluentBitIntegrationTests(unittest.TestCase):
     def test_syslog_is_normalized_and_forwarded_as_edge_event(self) -> None:
         mqtt_host = os.environ.get("MQTT_HOST", "127.0.0.1")
-        mqtt_port = int(os.environ.get("MQTT_PORT", "8883"))
+        mqtt_port = int(os.environ.get("MQTT_PORT", "1883"))
         syslog_host = os.environ.get("SYSLOG_HOST", "127.0.0.1")
         syslog_port = int(os.environ.get("SYSLOG_PORT", "5514"))
         topic = os.environ.get("EDGE_MQTT_TOPIC", "edge/events")
@@ -33,6 +30,7 @@ class FluentBitIntegrationTests(unittest.TestCase):
         events = []
 
         client = create_mqtt_v5_client(f"fluentbit-test-{uuid4().hex[:8]}")
+        client.username_pw_set("mqtt-kafka-bridge")
 
         def on_connect(
             mqtt_client: Any,
@@ -54,17 +52,6 @@ class FluentBitIntegrationTests(unittest.TestCase):
         client.on_connect = on_connect
         client.on_subscribe = on_subscribe
         client.on_message = on_message
-        cert_dir = Path(__file__).resolve().parents[1] / "deploy" / "mosquitto" / "certs"
-        configure_mtls(
-            client,
-            ca_file=os.environ.get("MQTT_CA_FILE", str(cert_dir / "ca.crt")),
-            certificate_file=os.environ.get(
-                "MQTT_CERT_FILE", str(cert_dir / "mqtt-kafka-bridge.crt")
-            ),
-            key_file=os.environ.get(
-                "MQTT_KEY_FILE", str(cert_dir / "mqtt-kafka-bridge.key")
-            ),
-        )
         try:
             client.connect(mqtt_host, mqtt_port, keepalive=15)
             client.loop_start()
@@ -89,13 +76,14 @@ class FluentBitIntegrationTests(unittest.TestCase):
 
     def test_jsonl_file_is_forwarded_by_tail_input(self) -> None:
         mqtt_host = os.environ.get("MQTT_HOST", "127.0.0.1")
-        mqtt_port = int(os.environ.get("MQTT_PORT", "8883"))
+        mqtt_port = int(os.environ.get("MQTT_PORT", "1883"))
         topic = os.environ.get("EDGE_MQTT_TOPIC", "edge/events")
         subscribed = threading.Event()
         received = threading.Event()
         events = []
 
         client = create_mqtt_v5_client(f"fluentbit-file-test-{uuid4().hex[:8]}")
+        client.username_pw_set("mqtt-kafka-bridge")
         client.on_connect = lambda mqtt_client, userdata, flags, reason, properties: (
             mqtt_client.subscribe(topic, qos=1) if reason == 0 else None
         )
@@ -103,17 +91,6 @@ class FluentBitIntegrationTests(unittest.TestCase):
         client.on_message = lambda mqtt_client, userdata, message: (
             events.append(MessagePackCodec().decode(message.payload)),
             received.set(),
-        )
-        cert_dir = Path(__file__).resolve().parents[1] / "deploy" / "mosquitto" / "certs"
-        configure_mtls(
-            client,
-            ca_file=os.environ.get("MQTT_CA_FILE", str(cert_dir / "ca.crt")),
-            certificate_file=os.environ.get(
-                "MQTT_CERT_FILE", str(cert_dir / "mqtt-kafka-bridge.crt")
-            ),
-            key_file=os.environ.get(
-                "MQTT_KEY_FILE", str(cert_dir / "mqtt-kafka-bridge.key")
-            ),
         )
 
         log_directory = Path(__file__).resolve().parents[1] / "examples" / "logs"

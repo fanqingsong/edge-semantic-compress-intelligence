@@ -1,23 +1,6 @@
 from __future__ import annotations
 
-import ssl
 from typing import Any
-
-
-def configure_mtls(
-    client: Any,
-    *,
-    ca_file: str,
-    certificate_file: str,
-    key_file: str,
-) -> None:
-    client.tls_set(
-        ca_certs=ca_file,
-        certfile=certificate_file,
-        keyfile=key_file,
-        cert_reqs=ssl.CERT_REQUIRED,
-    )
-    client.tls_insecure_set(False)
 
 
 def create_mqtt_v5_client(client_id: str) -> Any:

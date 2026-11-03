@@ -11,13 +11,13 @@ Deliver structured edge records to the cloud securely and reliably. When the net
 ## Scope
 
 - The MVP transports structured records with MQTT v5, QoS 1, and MessagePack. Kafka is outside the current MVP.
-- Use mutual TLS. Configure access control for the chosen protocol, such as an MQTT topic ACL.
+- Configure access control for the chosen protocol, such as an MQTT topic ACL. The local broker does not require a client certificate.
 - Buffer in a SQLite local-disk outbox, with resend and catch-up of the backlog. The default capacity is 100 MiB and is configurable.
 - The technical design requires MessagePack serialization. The cloud ingress uses the same data contract.
 
 ## Acceptance criteria
 
-- A connection without a valid client certificate is rejected. Certificate identity and the authorization policy can be verified.
+- A publish or subscribe that does not match the topic ACL is rejected. The MQTT username and the authorization policy can be verified.
 - Under the agreed outage duration, throughput, and disk capacity, buffered records are fully retried after the connection returns.
 - Message retries do not cause duplicate processing in the cloud. Idempotency is verified with a stable message identifier or an equivalent mechanism.
 - Transport failures, buffer backlog, disk usage, and retry state are observable.
@@ -25,9 +25,9 @@ Deliver structured edge records to the cloud securely and reliably. When the net
 ## Dependencies and open decisions
 
 - Depends on the structured records from PRD-02 and on the cloud message-ingress service.
-- The local Compose stack already enables mTLS and topic ACLs. An organizational CA and certificate rotation or revocation for the production broker are still to be deployed.
-- A connection without a client certificate has been verified to fail. A cloud certificate cannot publish to the edge event topic.
+- The local Compose stack uses plaintext MQTT on port `1883` and topic ACLs. The `edge-agent` username may publish to `edge/events`. The `mqtt-kafka-bridge` username may subscribe to that topic.
+- A bridge username cannot publish to the edge event topic.
 - An outbox record is deleted only after the broker acknowledges it. That acknowledgement is not the same as successful cloud business processing. The consumer still needs idempotency by `event_id`.
 - The cloud consumer implements manual ACK and persistent deduplication. It does not ACK when business processing fails. A repeated identical event is ACKed and is not processed again.
-- Define the maximum offline duration, the device disk quota, the alert when the buffer is full, and the production certificate-rotation procedure.
+- Define the maximum offline duration, the device disk quota, and the alert when the buffer is full.
 - JSON in PRD-02 and MessagePack on the transport layer are the model output and the wire encoding. Define a consistent decode and encode boundary.

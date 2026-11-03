@@ -8,11 +8,10 @@ Python 3.11 or newer is required. The edge and cloud agents import LangGraph, so
 PYTHONPATH=services/edge-agent/src:services/cloud-agent/src:services/mqtt-kafka-bridge/src:services/knowledge-ingest/src:libs/cloud/src:libs/shared/src python3 -m unittest discover -s tests -v
 ```
 
-Agent orchestration imports LangGraph, so install it before running the agent tests. When real services are required, install the optional dependencies and generate local development certificates first:
+Agent orchestration imports LangGraph, so install it before running the agent tests. When real services are required, install the optional dependencies first:
 
 ```bash
 python3 -m pip install 'langgraph>=1,<2' 'pymilvus>=2.4,<3' 'msgpack>=1.0' 'paho-mqtt>=2.0,<3' 'markitdown>=0.1.3,<0.2'
-bash scripts/generate-dev-mqtt-certs.sh
 ```
 
 ## edge agent
@@ -28,7 +27,7 @@ Put the SiliconFlow key in `.env` as `SILICONFLOW_API_KEY`. Compose reads that f
 
 Fluent Bit reads `./examples/logs/*.jsonl` and listens for syslog on UDP `5514`, then `POST`s batches to the edge agent on `8090`. The edge summarizer uses `SILICONFLOW_BASE_URL`, `EDGE_LLAMA_MODEL` (`Qwen/Qwen2-1.5B-Instruct`), and `SILICONFLOW_API_KEY`. The SQLite outbox defaults to a 100 MiB limit and rejects new messages when full.
 
-MQTT uses mTLS on port `8883` against EMQX. Regenerate the development certificates after pulling this change so the broker certificate includes `DNS:emqx` and the bridge client certificate exists. The edge agent certificate may only publish to `edge/events`. The `mqtt-kafka-bridge` certificate may only subscribe to that topic. Anonymous and plaintext connections are not open. Development certificates are for local use only. The bridge writes the MessagePack payload to the Kafka topic `edge.events`, and the cloud agent consumes that topic. Kafka stays on the Compose network.
+MQTT is plaintext on port `1883` against EMQX. The edge agent connects with MQTT username `edge-agent` and may only publish to `edge/events`. The `mqtt-kafka-bridge` connects with username `mqtt-kafka-bridge` and may only subscribe to that topic. There is no client certificate. The bridge writes the MessagePack payload to the Kafka topic `edge.events`, and the cloud agent consumes that topic. Kafka stays on the Compose network.
 
 Integration tests for transport and collection:
 

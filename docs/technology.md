@@ -21,7 +21,7 @@ E-03   SLM structured distillation   Send filtered log batches to a local SLM an
 
 E-04   Entity validation fallback   Validate IP, port, and error code in the SLM output with regular expressions, and fill missing values   At least 99% of critical entity fields are complete
 
-E-05   Secure transport   Encrypt the structured JSON and send it to the cloud over MQTT or Kafka   mTLS authentication; local disk buffering with no data loss on a weak network
+E-05   Secure transport   Send the structured event to the cloud over MQTT or Kafka   Topic ACL by MQTT username; local disk buffering with no data loss on a weak network
 
 2.2 Cloud
 ID   Module   Description   Acceptance criteria
@@ -58,7 +58,7 @@ graph TB
         A[Raw logs: files or syslog] --> B[Pre-filter: Fluent Bit / Vector]
         B -->|High-value log batches| C[SLM inference: llama.cpp + JSON Schema]
         C --> D[Entity validation fallback: regex backfill]
-        D --> E[Secure transport: MQTT/Kafka + mTLS]
+        D --> E[Secure transport: MQTT/Kafka]
 
         style B fill:#e1f5fe,stroke:#0288d1
         style C fill:#fff3e0,stroke:#f57c00
@@ -103,7 +103,7 @@ flowchart LR
     H -->|Complete| J[MessagePack serialization]
     I --> J
 
-    J --> K[mTLS encrypted transport]
+    J --> K[MQTT transport]
     K --> L[Cloud RAG pipeline]
 
     style X1 fill:#ffcdd2,stroke:#c62828
@@ -152,7 +152,7 @@ Prompt template: must contain the three sections `<edge_summary>`, `<retrieved_c
 Communication protocol
 Transport protocol: MQTT v5 (preferred on a weak network) or Kafka (preferred for high throughput)
 Serialization: MessagePack (about 30% smaller than JSON, and about 5 times faster to parse)
-Security: mutual TLS plus topic-level ACLs
+Security: topic-level ACLs by MQTT username
 
 Implementation phases
 Phase   Duration   Deliverable   Verification

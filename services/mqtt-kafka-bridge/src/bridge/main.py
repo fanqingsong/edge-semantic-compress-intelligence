@@ -6,7 +6,7 @@ import os
 from pathlib import Path
 
 from bridge.forward import MqttKafkaForwarder
-from shared.mqtt import configure_mtls, create_mqtt_v5_client
+from shared.mqtt import create_mqtt_v5_client
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -15,7 +15,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--mqtt-host", default=os.environ.get("BRIDGE_MQTT_HOST", "127.0.0.1")
     )
     parser.add_argument(
-        "--mqtt-port", type=int, default=int(os.environ.get("BRIDGE_MQTT_PORT", "8883"))
+        "--mqtt-port", type=int, default=int(os.environ.get("BRIDGE_MQTT_PORT", "1883"))
     )
     parser.add_argument(
         "--mqtt-topic", default=os.environ.get("BRIDGE_MQTT_TOPIC", "edge/events")
@@ -55,7 +55,9 @@ def main() -> None:
     ready_file.unlink(missing_ok=True)
 
     forwarder = MqttKafkaForwarder(KafkaPayloadProducer(args.kafka_bootstrap), args.kafka_topic)
-    client = create_mqtt_v5_client(os.environ.get("BRIDGE_MQTT_CLIENT_ID", "mqtt-kafka-bridge"))
+    client_id = os.environ.get("BRIDGE_MQTT_CLIENT_ID", "mqtt-kafka-bridge")
+    client = create_mqtt_v5_client(client_id)
+    client.username_pw_set(os.environ.get("BRIDGE_MQTT_USERNAME", client_id))
     client.manual_ack_set(True)
     client.reconnect_delay_set(min_delay=1, max_delay=30)
 
@@ -79,20 +81,6 @@ def main() -> None:
     client.on_connect = on_connect
     client.on_subscribe = on_subscribe
     client.on_message = on_message
-
-    ca_file = os.environ.get("BRIDGE_MQTT_CA_FILE")
-    certificate_file = os.environ.get("BRIDGE_MQTT_CERT_FILE")
-    key_file = os.environ.get("BRIDGE_MQTT_KEY_FILE")
-    tls_files = (ca_file, certificate_file, key_file)
-    if any(tls_files) and not all(tls_files):
-        raise SystemExit("mTLS requires CA, client certificate, and client key files")
-    if all(tls_files):
-        configure_mtls(
-            client,
-            ca_file=ca_file,
-            certificate_file=certificate_file,
-            key_file=key_file,
-        )
 
     import paho.mqtt.client as mqtt
 

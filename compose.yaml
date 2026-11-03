@@ -7,23 +7,17 @@ services:
       EDGE_HTTP_HOST: 0.0.0.0
       EDGE_HTTP_PORT: "8090"
       EDGE_MQTT_HOST: emqx
-      EDGE_MQTT_PORT: "8883"
+      EDGE_MQTT_PORT: "1883"
       EDGE_MQTT_TOPIC: edge/events
       EDGE_OUTBOX_PATH: /var/lib/edge-agent/outbox.sqlite3
       SILICONFLOW_BASE_URL: ${SILICONFLOW_BASE_URL:-https://api.siliconflow.cn/v1}
       SILICONFLOW_API_KEY: ${SILICONFLOW_API_KEY:-}
       EDGE_LLAMA_MODEL: ${EDGE_LLAMA_MODEL:-Qwen/Qwen2-1.5B-Instruct}
       EDGE_LLAMA_TIMEOUT: ${EDGE_LLAMA_TIMEOUT:-30}
-      EDGE_MQTT_CA_FILE: /run/mqtt/ca.crt
-      EDGE_MQTT_CERT_FILE: /run/mqtt/edge-agent.crt
-      EDGE_MQTT_KEY_FILE: /run/mqtt/edge-agent.key
     ports:
       - "8090:8090"
     volumes:
       - edge_outbox:/var/lib/edge-agent
-      - ./deploy/mosquitto/certs/ca.crt:/run/mqtt/ca.crt:ro
-      - ./deploy/mosquitto/certs/edge-agent.crt:/run/mqtt/edge-agent.crt:ro
-      - ./deploy/mosquitto/certs/edge-agent.key:/run/mqtt/edge-agent.key:ro
     depends_on:
       emqx:
         condition: service_healthy
@@ -107,27 +101,17 @@ services:
 
   emqx:
     image: emqx/emqx:5.9.3
-    user: "0:0"
     ports:
-      - "8883:8883"
+      - "1883:1883"
     environment:
-      EMQX_LISTENERS__TCP__DEFAULT__ENABLE: "false"
+      EMQX_LISTENERS__TCP__DEFAULT__ENABLE: "true"
+      EMQX_LISTENERS__TCP__DEFAULT__BIND: "0.0.0.0:1883"
+      EMQX_LISTENERS__SSL__DEFAULT__ENABLE: "false"
       EMQX_LISTENERS__WS__DEFAULT__ENABLE: "false"
-      EMQX_LISTENERS__SSL__DEFAULT__ENABLE: "true"
-      EMQX_LISTENERS__SSL__DEFAULT__BIND: "0.0.0.0:8883"
-      EMQX_LISTENERS__SSL__DEFAULT__SSL_OPTIONS__VERIFY: verify_peer
-      EMQX_LISTENERS__SSL__DEFAULT__SSL_OPTIONS__FAIL_IF_NO_PEER_CERT: "true"
-      EMQX_LISTENERS__SSL__DEFAULT__SSL_OPTIONS__CACERTFILE: /opt/emqx/etc/certs/ca.crt
-      EMQX_LISTENERS__SSL__DEFAULT__SSL_OPTIONS__CERTFILE: /opt/emqx/etc/certs/broker.crt
-      EMQX_LISTENERS__SSL__DEFAULT__SSL_OPTIONS__KEYFILE: /opt/emqx/etc/certs/broker.key
-      EMQX_MQTT__PEER_CERT_AS_USERNAME: cn
       EMQX_AUTHORIZATION__NO_MATCH: deny
-      EMQX_DASHBOARD__DEFAULT_PASSWORD: Emqx-dev-8883
+      EMQX_DASHBOARD__DEFAULT_PASSWORD: Emqx-dev-1883
     volumes:
       - ./deploy/emqx/acl.conf:/opt/emqx/etc/acl.conf:ro
-      - ./deploy/mosquitto/certs/ca.crt:/opt/emqx/etc/certs/ca.crt:ro
-      - ./deploy/mosquitto/certs/broker.crt:/opt/emqx/etc/certs/broker.crt:ro
-      - ./deploy/mosquitto/certs/broker.key:/opt/emqx/etc/certs/broker.key:ro
       - emqx_data:/opt/emqx/data
     healthcheck:
       test: ["CMD", "/opt/emqx/bin/emqx", "ctl", "status"]
@@ -172,18 +156,11 @@ services:
       dockerfile: services/mqtt-kafka-bridge/Dockerfile
     environment:
       BRIDGE_MQTT_HOST: emqx
-      BRIDGE_MQTT_PORT: "8883"
+      BRIDGE_MQTT_PORT: "1883"
       BRIDGE_MQTT_TOPIC: edge/events
       BRIDGE_KAFKA_BOOTSTRAP: kafka:9092
       BRIDGE_KAFKA_TOPIC: edge.events
-      BRIDGE_MQTT_CA_FILE: /run/mqtt/ca.crt
-      BRIDGE_MQTT_CERT_FILE: /run/mqtt/mqtt-kafka-bridge.crt
-      BRIDGE_MQTT_KEY_FILE: /run/mqtt/mqtt-kafka-bridge.key
       BRIDGE_READY_FILE: /tmp/ready
-    volumes:
-      - ./deploy/mosquitto/certs/ca.crt:/run/mqtt/ca.crt:ro
-      - ./deploy/mosquitto/certs/mqtt-kafka-bridge.crt:/run/mqtt/mqtt-kafka-bridge.crt:ro
-      - ./deploy/mosquitto/certs/mqtt-kafka-bridge.key:/run/mqtt/mqtt-kafka-bridge.key:ro
     depends_on:
       emqx:
         condition: service_healthy

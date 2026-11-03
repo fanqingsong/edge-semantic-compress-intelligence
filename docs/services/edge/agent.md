@@ -14,4 +14,4 @@ This is the only long-running process on the edge. It does not implement filteri
 
 Fluent Bit `POST`s a log batch to `/v1/logs`. The body is UTF-8 log lines, with a default limit of 1 MiB. `GET /healthz` means only that the process is alive. It does not mean the outbox is empty or that the cloud has processed the events.
 
-Local startup and certificates are in [local development](../../local-development.md).
+Local startup is in [local development](../../local-development.md).

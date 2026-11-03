@@ -16,7 +16,7 @@ Build an AIOps log analysis system that combines structured compression on the e
 | E-02 | Rule pre-filter | L1 format check, L2 status-code filter, L3 keyword denylist, L4 rate suppression | Rules only, with no AI cost; at least 90% of invalid logs are blocked |
 | E-03 | SLM structured distillation | Send filtered log batches to a local SLM and emit a structured summary that matches a JSON Schema | 100% valid JSON; per-batch latency under 2s |
 | E-04 | Entity validation fallback | Validate IP, port, and error code in the SLM output with regular expressions, and fill missing values | At least 99% of critical entity fields are complete |
-| E-05 | Secure transport | Encrypt the structured JSON and send it to the cloud over MQTT or Kafka | mTLS authentication; local disk buffering with no data loss on a weak network |
+| E-05 | Secure transport | Send the structured event to the cloud over MQTT or Kafka | Topic ACL by MQTT username; local disk buffering with no data loss on a weak network |
 
 ### 2.2 Cloud
 

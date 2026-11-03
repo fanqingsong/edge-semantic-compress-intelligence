@@ -19,10 +19,7 @@ from edge.transport.outbox import (
     SQLiteOutbox,
 )
 from shared.codec import MessagePackCodec
-from shared.mqtt import (
-    configure_mtls,
-    create_mqtt_v5_client,
-)
+from shared.mqtt import create_mqtt_v5_client
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -75,21 +72,10 @@ def main() -> None:
     logging.basicConfig(level=logging.INFO)
     args = build_parser().parse_args()
 
-    mqtt_client = create_mqtt_v5_client(os.environ.get("EDGE_MQTT_CLIENT_ID", "edge-agent"))
+    client_id = os.environ.get("EDGE_MQTT_CLIENT_ID", "edge-agent")
+    mqtt_client = create_mqtt_v5_client(client_id)
+    mqtt_client.username_pw_set(os.environ.get("EDGE_MQTT_USERNAME", client_id))
     mqtt_client.reconnect_delay_set(min_delay=1, max_delay=30)
-    ca_file = os.environ.get("EDGE_MQTT_CA_FILE")
-    certificate_file = os.environ.get("EDGE_MQTT_CERT_FILE")
-    key_file = os.environ.get("EDGE_MQTT_KEY_FILE")
-    tls_files = (ca_file, certificate_file, key_file)
-    if any(tls_files) and not all(tls_files):
-        raise SystemExit("mTLS requires CA, client certificate, and client key files")
-    if all(tls_files):
-        configure_mtls(
-            mqtt_client,
-            ca_file=ca_file,
-            certificate_file=certificate_file,
-            key_file=key_file,
-        )
 
     outbox = SQLiteOutbox(args.outbox, max_bytes=args.max_outbox_bytes)
     mqtt_client.connect_async(args.mqtt_host, args.mqtt_port, keepalive=30)

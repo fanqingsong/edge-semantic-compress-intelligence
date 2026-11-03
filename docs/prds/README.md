@@ -39,5 +39,5 @@ The full weak-network reliability and security policy of PRD-03 should have thei
 - **Cloud storage and orchestration**: choose Milvus or Elasticsearch, and LlamaIndex or LangChain.
 - **Fallback for exact IP filtering**: decide whether to relax the filter when `target_ip` is missing or there is no exact match, and define the relaxation rule.
 - **Entity backfill boundary**: values may be extracted only from the raw log and must not be invented. Define the behavior when a field is missing and cannot be extracted.
-- **Security and data governance**: define raw-log redaction, retention, certificate rotation, and the review required before a prompt suggestion goes live.
+- **Security and data governance**: define raw-log redaction, retention, and the review required before a prompt suggestion goes live.
 - **Metric definitions**: define labeling standards and review procedures for invalid logs, relevant cases, actionable suggestions, and summary completeness.

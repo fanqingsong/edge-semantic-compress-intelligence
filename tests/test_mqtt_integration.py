@@ -23,10 +23,7 @@ from cloud.rag import (
 from edge.summarization import SummaryPipeline
 from tests.standins import FixedAnalysisModel, LogBatchSummarizer
 from shared.codec import MessagePackCodec
-from shared.mqtt import (
-    configure_mtls,
-    create_mqtt_v5_client,
-)
+from shared.mqtt import create_mqtt_v5_client
 from edge.transport import (
     ReliableMqttTransport,
     SQLiteOutbox,
@@ -38,59 +35,12 @@ from edge.transport import (
     "set RUN_MQTT_INTEGRATION=1 to run against a local MQTT broker",
 )
 class LocalMqttIntegrationTests(unittest.TestCase):
-    def test_broker_rejects_connection_without_client_certificate(self) -> None:
+    def test_bridge_username_cannot_publish_to_edge_topic(self) -> None:
         host = os.environ.get("MQTT_HOST", "127.0.0.1")
-        port = int(os.environ.get("MQTT_PORT", "8883"))
-        cert_dir = Path(__file__).resolve().parents[1] / "deploy" / "mosquitto" / "certs"
-        client = create_mqtt_v5_client(f"no-cert-test-{uuid4().hex[:8]}")
-        client.tls_set(ca_certs=str(cert_dir / "ca.crt"))
-        rejected = threading.Event()
-        connection_reason = []
-
-        def on_connect(
-            mqtt_client: Any,
-            userdata: Any,
-            flags: Any,
-            reason_code: Any,
-            properties: Any,
-        ) -> None:
-            connection_reason.append(reason_code)
-            if reason_code.is_failure:
-                rejected.set()
-
-        def on_disconnect(
-            mqtt_client: Any,
-            userdata: Any,
-            disconnect_flags: Any,
-            reason_code: Any,
-            properties: Any,
-        ) -> None:
-            rejected.set()
-
-        client.on_connect = on_connect
-        client.on_disconnect = on_disconnect
-        try:
-            client.connect(host, port, keepalive=5)
-            client.loop_start()
-            self.assertTrue(rejected.wait(5), "broker did not reject the uncertified client")
-            if connection_reason:
-                self.assertTrue(connection_reason[0].is_failure)
-        finally:
-            client.disconnect()
-            client.loop_stop()
-
-    def test_bridge_certificate_cannot_publish_to_edge_topic(self) -> None:
-        host = os.environ.get("MQTT_HOST", "127.0.0.1")
-        port = int(os.environ.get("MQTT_PORT", "8883"))
+        port = int(os.environ.get("MQTT_PORT", "1883"))
         topic = "edge/events"
-        cert_dir = Path(__file__).resolve().parents[1] / "deploy" / "mosquitto" / "certs"
         client = create_mqtt_v5_client(f"acl-negative-test-{uuid4().hex[:8]}")
-        configure_mtls(
-            client,
-            ca_file=str(cert_dir / "ca.crt"),
-            certificate_file=str(cert_dir / "mqtt-kafka-bridge.crt"),
-            key_file=str(cert_dir / "mqtt-kafka-bridge.key"),
-        )
+        client.username_pw_set("mqtt-kafka-bridge")
         connected = threading.Event()
         publish_completed = threading.Event()
         publish_reason = []
@@ -120,7 +70,7 @@ class LocalMqttIntegrationTests(unittest.TestCase):
         try:
             client.connect(host, port, keepalive=5)
             client.loop_start()
-            self.assertTrue(connected.wait(5), "mTLS connection timed out")
+            self.assertTrue(connected.wait(5), "MQTT connection timed out")
             info = client.publish(topic, b"unauthorized", qos=1)
             info.wait_for_publish(timeout=5)
             self.assertTrue(publish_completed.wait(5), "MQTT PUBACK timed out")
@@ -133,7 +83,7 @@ class LocalMqttIntegrationTests(unittest.TestCase):
         from collections.abc import Sequence
 
         host = os.environ.get("MQTT_HOST", "127.0.0.1")
-        port = int(os.environ.get("MQTT_PORT", "8883"))
+        port = int(os.environ.get("MQTT_PORT", "1883"))
         topic = "edge/events"
         received = threading.Event()
         publisher_connected = threading.Event()
@@ -157,18 +107,8 @@ class LocalMqttIntegrationTests(unittest.TestCase):
                 lambda event: analyses.append(rag_service.analyze(event)),
             )
             subscriber = create_mqtt_v5_client(f"edge-test-sub-{uuid4().hex[:8]}")
+            subscriber.username_pw_set("mqtt-kafka-bridge")
             consumer.bind(subscriber)
-            cert_dir = Path(__file__).resolve().parents[1] / "deploy" / "mosquitto" / "certs"
-            configure_mtls(
-                subscriber,
-                ca_file=os.environ.get("MQTT_CA_FILE", str(cert_dir / "ca.crt")),
-                certificate_file=os.environ.get(
-                    "MQTT_CERT_FILE", str(cert_dir / "mqtt-kafka-bridge.crt")
-                ),
-                key_file=os.environ.get(
-                    "MQTT_KEY_FILE", str(cert_dir / "mqtt-kafka-bridge.key")
-                ),
-            )
             subscribe_confirmed = threading.Event()
             original_on_message = subscriber.on_message
 
@@ -182,12 +122,7 @@ class LocalMqttIntegrationTests(unittest.TestCase):
             subscriber.on_subscribe = on_subscribe
             subscriber.on_message = on_message
             publisher = create_mqtt_v5_client(f"edge-test-pub-{uuid4().hex[:8]}")
-            configure_mtls(
-                publisher,
-                ca_file=os.environ.get("MQTT_CA_FILE", str(cert_dir / "ca.crt")),
-                certificate_file=str(cert_dir / "edge-agent.crt"),
-                key_file=str(cert_dir / "edge-agent.key"),
-            )
+            publisher.username_pw_set("edge-agent")
             publisher.on_connect = lambda *args: publisher_connected.set()
             edge_runtime = EdgeRuntime(
                 RuleFilter(),

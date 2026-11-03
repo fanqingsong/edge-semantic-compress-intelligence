@@ -2,14 +2,10 @@ import tempfile
 import unittest
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
 
 from shared.contract import EdgeEvent
 from shared.codec import MessagePackCodec
-from shared.mqtt import (
-    configure_mtls,
-    create_mqtt_v5_client,
-)
+from shared.mqtt import create_mqtt_v5_client
 from edge.transport import (
     EventConflictError,
     FlushReport,
@@ -45,17 +41,6 @@ class FakeMqttClient:
     def publish(self, topic: str, payload: bytes, qos: int) -> FakePublishInfo:
         self.calls.append((topic, payload, qos))
         return self.outcomes.pop(0) if self.outcomes else FakePublishInfo()
-
-
-class FakeTlsClient:
-    tls_options: dict[str, Any] | None = None
-    insecure: bool | None = None
-
-    def tls_set(self, **kwargs: Any) -> None:
-        self.tls_options = kwargs
-
-    def tls_insecure_set(self, value: bool) -> None:
-        self.insecure = value
 
 
 def make_event() -> EdgeEvent:
@@ -143,19 +128,6 @@ class ReliableMqttTransportTests(unittest.TestCase):
         self.assertEqual(result, FlushReport(published=0, pending=1))
         self.assertEqual(pending[0].event_id, event.event_id)
         self.assertEqual(pending[0].attempts, 1)
-
-    def test_tls_configuration_requires_peer_verification(self) -> None:
-        client = FakeTlsClient()
-
-        configure_mtls(
-            client,
-            ca_file="ca.pem",
-            certificate_file="client.pem",
-            key_file="client.key",
-        )
-
-        self.assertFalse(client.insecure)
-        self.assertEqual(client.tls_options["ca_certs"], "ca.pem")
 
 
 if __name__ == "__main__":
