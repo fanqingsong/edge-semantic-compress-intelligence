@@ -16,7 +16,7 @@ This directory records architecture decisions that affect system boundaries, tec
 | ADR-0008 | [Summary-quality feedback and prompt governance](adr-0008-feedback-governance.md) | Accepted (human review, no automatic distribution); implementation removed | — | PRD-07 |
 | ADR-0009 | [Edge event schema and data minimization](adr-0009-edge-event-contract.md) | Accepted (MVP) | [shared](../services/shared.md) | PRD-02, PRD-03, PRD-05 |
 | ADR-0010 | [Manage code and docs at service granularity](adr-0010-service-granularity.md) | Accepted | [All services](../services/README.md) | PRD-01 through PRD-07 |
-| ADR-0011 | [Clustered MQTT ingress and a cloud-side Kafka bridge](adr-0011-clustered-mqtt-kafka-bridge.md) | Accepted | [Transport](../services/edge/transport.md) | PRD-03 |
+| ADR-0011 | [Clustered MQTT ingress and a cloud-side Kafka bridge](adr-0011-clustered-mqtt-kafka-bridge.md) | Accepted | [Transport](../services/edge/transport.md), [MQTT-to-Kafka bridge](../services/cloud/bridge.md) | PRD-03 |
 
 ## Status meanings
 

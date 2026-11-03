@@ -12,6 +12,6 @@ This is the only long-running process on the edge. It does not implement filteri
 2. [Summarization](summarization.md), one event per service
 3. [Transport](transport.md)
 
-Fluent Bit `POST`s a log batch to `/v1/logs`. The body is UTF-8 log lines, with a default limit of 1 MiB. `GET /healthz` means only that the process is alive. It does not mean the outbox is empty or that the cloud has processed the events. `GET /v1/status` returns the outbox pending count and byte count. It does not return event payloads.
+Fluent Bit `POST`s a log batch to `/v1/logs`. How that batch is formed is [Log collection](collection.md). The body is UTF-8 log lines, with a default limit of 1 MiB. `GET /healthz` means only that the process is alive. It does not mean the outbox is empty or that the cloud has processed the events. `GET /v1/status` returns the outbox pending count and byte count. It does not return event payloads.
 
 Local startup is in [local development](../../local-development.md).

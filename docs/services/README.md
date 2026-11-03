@@ -13,7 +13,7 @@ Requirements and acceptance criteria remain in the [PRD index](../prds/README.md
 | Transport | [`services/edge-agent/src/edge/transport`](../../services/edge-agent/src/edge/transport) | Called by the edge agent | [Transport](edge/transport.md) |
 | edge agent | [`services/edge-agent/src/edge/agent`](../../services/edge-agent/src/edge/agent) | Process `edge-log-agent` | [edge agent](edge/agent.md) |
 
-Fluent Bit collects logs. Its configuration is in [`deploy/fluent-bit`](../../deploy/fluent-bit). It is not one of these Python services.
+Fluent Bit collects logs and posts them in time-based batches. That path is [Log collection](edge/collection.md). Configuration is in [`deploy/fluent-bit`](../../deploy/fluent-bit). It is not one of these Python services.
 
 ## Cloud
 
@@ -24,7 +24,7 @@ Fluent Bit collects logs. Its configuration is in [`deploy/fluent-bit`](../../de
 | RAG | [`libs/cloud/src/cloud/rag`](../../libs/cloud/src/cloud/rag) | Called by the cloud agent | [RAG](cloud/rag.md) |
 | cloud agent | [`services/cloud-agent/src/cloud/agent`](../../services/cloud-agent/src/cloud/agent) | Process `cloud-rag-agent` | [cloud agent](cloud/agent.md) |
 | Admin | [`services/admin/src/cloud/admin`](../../services/admin/src/cloud/admin) | Process `cloud-admin` | [Admin](cloud/admin.md) |
-| MQTT-to-Kafka bridge | [`services/mqtt-kafka-bridge/src/bridge`](../../services/mqtt-kafka-bridge/src/bridge) | Process `mqtt-kafka-bridge` | Subscribes to `edge/events` and produces `edge.events` |
+| MQTT-to-Kafka bridge | [`services/mqtt-kafka-bridge/src/bridge`](../../services/mqtt-kafka-bridge/src/bridge) | Process `mqtt-kafka-bridge` | [MQTT-to-Kafka bridge](cloud/bridge.md) |
 
 ## Dependency direction
 

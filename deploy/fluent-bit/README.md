@@ -2,7 +2,7 @@
 
 对照文件：[`fluent-bit.conf`](fluent-bit.conf)、[`normalize_syslog.lua`](normalize_syslog.lua)。
 
-镜像版本见 [`compose.yaml`](../../compose.yaml) 里的 `fluent/fluent-bit:3.2.10`。这份配置负责采集，并在转发前丢掉 `info` 级别。规则过滤（L1–L4）在 edge agent 里，不在这里。
+镜像版本见 [`compose.yaml`](../../compose.yaml) 里的 `fluent/fluent-bit:3.2.10`。这份配置负责采集，并在转发前丢掉 `info` 级别。规则过滤（L1–L4）在 edge agent 里，不在这里。批量如何形成并交给 edge agent，见 [Log collection](../../docs/services/edge/collection.md)。
 
 ## 这条流水线在做什么
 

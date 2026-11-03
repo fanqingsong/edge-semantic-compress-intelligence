@@ -2,7 +2,7 @@
 
 Code: [`services/edge-agent/src/edge/transport`](../../../services/edge-agent/src/edge/transport)
 
-Related: [PRD-03](../../prds/prd-03-secure-transport.md), [ADR-0004](../../adr/adr-0004-secure-transport.md), [ADR-0011](../../adr/adr-0011-clustered-mqtt-kafka-bridge.md)
+Related: [PRD-03](../../prds/prd-03-secure-transport.md), [ADR-0004](../../adr/adr-0004-secure-transport.md), [ADR-0011](../../adr/adr-0011-clustered-mqtt-kafka-bridge.md), [MQTT-to-Kafka bridge](../cloud/bridge.md)
 
 ## Responsibilities
 

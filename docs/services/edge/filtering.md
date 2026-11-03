@@ -15,4 +15,4 @@ The rule order is fixed:
 3. L3 keyword denylist. Drop heartbeats and health checks. Reason: `blacklisted_keyword`.
 4. L4 rate suppression. For the same service and the same message above the threshold, keep only the first and last occurrence. Reason: `frequency_suppressed`.
 
-Collection is not in this package. Fluent Bit reads files and receives syslog on UDP `5514`. After normalization it hands the log batch to the [edge agent](agent.md). Configuration is in [`deploy/fluent-bit`](../../../deploy/fluent-bit).
+Collection is not in this package. Fluent Bit reads files and receives syslog on UDP `5514`. After normalization it hands the log batch to the [edge agent](agent.md). How that batch is formed is [Log collection](collection.md). Configuration is in [`deploy/fluent-bit`](../../../deploy/fluent-bit).
